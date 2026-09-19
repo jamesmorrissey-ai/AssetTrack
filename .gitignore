@@ -44,6 +44,11 @@ services/*/data/
 !.vscode/tasks.json
 .playwright-mcp/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # .NET incremental build cache
 *.lscache
 dotnet/runfile-discovery/
