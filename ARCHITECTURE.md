@@ -165,7 +165,7 @@ into SQL as a course security exercise.
 **Purpose:** User lookup, credential checking, RS256 JWT issuance, and JWKS
 publication.
 
-**Stack:** Java 17, Spring Boot 3.5, Spring JDBC, JJWT, and SQLite.
+**Stack:** Java 21, Spring Boot 3.5, Spring JDBC, JJWT, and SQLite.
 
 - `TokenController.java` exposes token, JWKS, health, and user endpoints.
 - `UserRepository.java` performs user lookup.

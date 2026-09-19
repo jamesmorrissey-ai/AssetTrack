@@ -26,7 +26,7 @@ flowchart LR
 
     subgraph behind[Services a generation behind - due for a currency upgrade]
       audit[audit-svc<br/>Java 17 / Spring Boot 3.5]
-      auth[auth-svc<br/>Java 17 / Spring Boot 3.5]
+      auth[auth-svc<br/>Java 21 / Spring Boot 3.5]
     end
 
     web --> assets
@@ -53,7 +53,7 @@ integrity.
 | `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Live reports and CSV import proxy; no primary database |
 | `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Assignment webhook receiver and delivery stubs; owns a SQLite event log |
 | `audit-svc`          | Java 17 / Spring Boot 3.5 *(currency-lagging)* | 5005 | Audit event log in SQLite |
-| `auth-svc`           | Java 17 / Spring Boot 3.5 *(currency-lagging)* | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
+| `auth-svc`           | Java 21 / Spring Boot 3.5 *(framework currency-lagging)* | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for service boundaries, request flows,
 data initialization, integration behavior, and currently unenforced rules.
@@ -62,7 +62,7 @@ data initialization, integration behavior, and currently unenforced rules.
 
 1. Open the repository in GitHub Codespaces, or in VS Code with the Dev Containers extension.
 2. Wait for the devcontainer to finish provisioning. It installs:
-   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK for all three JVM services; the two currency-lagging services target Java 17 bytecode and build fine on JDK 21).
+   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK for all three JVM services; `audit-svc` still targets Java 17 bytecode while `auth-svc` and `workforce-svc` target Java 21).
    - `concurrently` and editable Python installs for the FastAPI services (via `postCreateCommand`).
 3. From the workspace root:
 
