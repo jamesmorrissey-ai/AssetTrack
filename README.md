@@ -14,7 +14,7 @@ flowchart LR
     browser([Browser]) --> web
 
     subgraph frontend
-      web[web<br/>Astro SSR + React islands]
+      web[web<br/>Astro SSR / BFF]
     end
 
     subgraph modern[Modern services]
@@ -32,24 +32,31 @@ flowchart LR
     web --> assets
     web --> workforce
     web --> reporting
-    web --> auth
     workforce -.audit hook<br/>not yet wired.-> audit
-    workforce --> notifications
-    assets -.JWKs.-> auth
-    workforce -.JWKs.-> auth
+    workforce -->|assignment-created webhook| notifications
+    web -.token flow<br/>not yet wired.-> auth
+    assets -.JWT validation<br/>not yet wired.-> auth
+    workforce -.JWT validation<br/>not yet wired.-> auth
 ```
 
-All services talk over **REST/JSON**. Each service owns its own SQLite database.
+The browser receives server-rendered HTML from `web`; backend integration is
+primarily REST/JSON, with multipart upload for CSV imports. Services own their
+data independently, but not every service has a database. Cross-service IDs are
+application-level references and do not have database-enforced referential
+integrity.
 
-| Service              | Stack                                  | Port  | Owns                                |
-|----------------------|----------------------------------------|-------|-------------------------------------|
-| `web`                | Astro (SSR) + React islands + Bootstrap 5 | 4321  | UI, BFF composition                 |
-| `assets-svc`         | .NET 10 (ASP.NET Core minimal APIs)    | 5001  | Asset CRUD + search                 |
-| `workforce-svc`      | Java 21 / Spring Boot 3                | 5002  | Employees + Assignments             |
-| `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Reports, CSV bulk import            |
-| `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Webhook receiver, email/Slack stub  |
-| `audit-svc`          | Java 17 / Spring Boot 3.5 *(a generation behind)* | 5005  | Audit event log                     |
-| `auth-svc`           | Java 17 / Spring Boot 3.5 *(a generation behind)* | 5006  | JWT issuer, user lookup             |
+| Service              | Stack                                  | Port  | Responsibility / storage |
+|----------------------|----------------------------------------|-------|--------------------------|
+| `web`                | Astro SSR + Bootstrap 5; React integration installed but currently unused | 4321 | UI and server-side backend composition; no database |
+| `assets-svc`         | .NET 10 (ASP.NET Core minimal APIs)    | 5001  | Asset CRUD/search; owns SQLite `assets` data |
+| `workforce-svc`      | Java 21 / Spring Boot 3.5              | 5002  | Employees and assignments; owns SQLite workforce data |
+| `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Live reports and CSV import proxy; no primary database |
+| `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Assignment webhook receiver and delivery stubs; owns a SQLite event log |
+| `audit-svc`          | Java 17 / Spring Boot 3.5 *(currency-lagging)* | 5005 | Audit event log in SQLite |
+| `auth-svc`           | Java 17 / Spring Boot 3.5 *(currency-lagging)* | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for service boundaries, request flows,
+data initialization, integration behavior, and currently unenforced rules.
 
 ## Quick start (Codespaces or local devcontainer)
 
@@ -101,25 +108,49 @@ Each service folder has its own `README.md` with native (non-Docker) run instruc
 
 ## Auth
 
-`auth-svc` issues RS256 JWTs from `POST /token`. Other services validate tokens via the JWKs document at `http://auth-svc:8080/.well-known/jwks`.
+`auth-svc` issues RS256 JWTs from `POST /token` and publishes its public key at
+`GET /.well-known/jwks`.
 
-For course exercises that aren't about auth, the frontend runs with `DEV_TOKEN_MODE=true`, which uses a pre-issued long-lived token so learners aren't blocked by login flows. To exercise the real flow, set it to `false`.
+JWT validation and frontend token forwarding are **not currently implemented**.
+`AUTH_JWKS_URL` and `DEV_TOKEN_MODE` are configured as placeholders for the auth
+course exercise, but application code does not currently consume them. Setting
+`DEV_TOKEN_MODE=false` does not enable an end-to-end login flow; all service
+endpoints are presently unauthenticated.
 
 ## What's intentionally broken or missing
 
 This is a teaching codebase. Several services have deliberate gaps that drive the course exercises (see [`exercises.md`](exercises.md)). For example:
 
-- The two legacy Java services use raw JDBC string concatenation and have SQL injection.
-- `reporting-svc` has old-style Python helpers and an import endpoint that crashes on bad rows.
-- `assets-svc` accepts unvalidated input on create.
+- `auth-svc` and `audit-svc` contain SQL injection targets; auth also uses
+  plaintext seeded passwords and a new in-memory signing key after each restart.
+- JWTs are issued but not validated by other services.
+- `reporting-svc` has old-style Python helpers and a non-transactional import
+  endpoint that can partially import a CSV before a bad row aborts the request.
+- `assets-svc` accepts unvalidated input on create and update.
 - The dashboard renders some status badges with the wrong colors.
-- `workforce-svc` does not yet POST to `audit-svc` on assignment changes.
+- `workforce-svc` does not reject inactive employees, nonexistent assets, or
+  invalid return dates; it also does not POST assignment changes to `audit-svc`.
+- Notification delivery has no queue or retry, and workforce silently discards
+  notification failures.
+- Test coverage and ordinary application CI are intentionally incomplete on
+  `main`; most comprehensive validation belongs to generated course states.
 
 See [`exercises.md`](exercises.md) for the full exercise list.
 
 ## Course exercises
 
 See [`exercises.md`](exercises.md). Each exercise is **atomic** — completing one is not a prerequisite for another. Exercises cover all five stacks (Astro, .NET, modern Java, Python, legacy Java) so learners can pick what's most useful to them.
+
+## Course branch infrastructure
+
+The application source on `main` is also the base for generated
+`start-of-module-*` learner branches. The deterministic branch generator,
+ordered patch deltas, expected tree hashes, and promotion workflows live under
+[`course-build/`](course-build/README.md).
+
+Contributors should change `main`, not generated learner branches or generated
+refs. The course workflows validate generated branch states; they are not a
+substitute for general CI on every application pull request.
 
 ## License
 
