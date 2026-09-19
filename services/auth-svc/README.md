@@ -28,9 +28,14 @@ Issues RS256 JWTs and exposes a JWKs document so other services can validate tok
 mvn spring-boot:run
 ```
 
+## Test
+
+```bash
+mvn test
+```
+
 ## Known smells (course material)
 
 - **SQL injection** in `UserRepository.findByUsername` (string concatenation). Course exercise target.
 - **Plain-text passwords** in the seeded database.
-- **No tests** in this module.
 - **Spring Boot 3.5 / Java 17** — a generation behind the team's Spring Boot 4 / Java 21 target; the currency-upgrade exercise (including the jjwt/serializer migration) brings it current.
