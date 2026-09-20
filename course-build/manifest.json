@@ -156,14 +156,22 @@
       "patches": [
         "0001-feat-module-06-modernize-audit-svc-auth-svc-to-Sprin.patch"
       ],
-      "expectedTreeSha": "cb9a6a19492fa0b7d285685e875f1f03acfc27f7",
+      "expectedTreeSha": "bc126e38a84e775eeffb80882bbbeddcdf01cd38",
       "expectedAssets": [
         ".github/lsp.json",
         ".github/agents/java-migrator.agent.md",
+        ".github/hooks/hooks.json",
+        ".github/hooks/scripts/test-router.sh",
         "docs/modernization/audit-svc-plan.md",
+        "docs/modernization/auth-svc-plan.md",
         "docs/modernization/migration-playbook.md",
-        "services/audit-svc/src/test/java/com/contoso/audit/AuditControllerTest.java",
-        "services/auth-svc/src/test/java/com/contoso/auth/TokenControllerTest.java"
+        "services/audit-svc/src/test/java/com/contoso/audit/AuditApplicationTests.java",
+        "services/audit-svc/src/test/java/com/contoso/audit/AuditControllerIntegrationTests.java",
+        "services/audit-svc/src/test/java/com/contoso/audit/AuditRepositoryIntegrationTests.java",
+        "services/audit-svc/src/test/java/com/contoso/audit/AuditTestDatabase.java",
+        "services/auth-svc/src/test/java/com/contoso/auth/AuthApplicationTests.java",
+        "services/auth-svc/src/test/java/com/contoso/auth/AuthTestDatabase.java",
+        "services/auth-svc/src/test/java/com/contoso/auth/TokenControllerIntegrationTests.java"
       ],
       "touchesAppCode": true
     }

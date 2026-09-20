@@ -1,87 +1,626 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: acc-course-bot <acc-course-bot@users.noreply.github.com>
-Date: Tue, 18 Aug 2026 13:58:56 -0700
-Subject: [PATCH] feat(module-06): modernize audit-svc + auth-svc to Spring
- Boot 4.1 / Java 21
+Date: Sun, 20 Sep 2026 10:23:29 +0000
+Subject: [PATCH] feat(module-06): finalize Java 21 service modernization
 
-Currency upgrade of the two lagging Java services from the CVE-clean but
-generation-behind Boot 3.5.16 / Java 17 baseline to the current Boot 4.1.0 /
-Java 21 stack, with baseline test suites.
+Carry the completed audit/auth Spring Boot 4.1 and Java 21 migrations, JJWT 0.12.7 with jjwt-gson, finalized integration tests, documentation and migration guidance, Java tooling, and service-aware lifecycle routing into the cumulative Module 06 learner state.
 
-- audit-svc, auth-svc: parent 3.5.16 -> 4.1.0; java.version 17 -> 21; Dockerfiles
-  temurin 17 -> 21; pin jackson-bom (Jackson 3) 3.1.6 and log4j2 2.25.5 (Boot 4.1
-  natively resolves the vulnerable 3.1.4 / 2.25.4).
-- Jackson 3 (tools.jackson) is the Boot 4 default; audit-svc's Map/List responses
-  serialize with no source change.
-- auth-svc: jjwt 0.11.5 -> 0.12.7 with the fluent builder API in JwtIssuer, and
-  jjwt-jackson -> jjwt-gson so JWT (de)serialization stays off Jackson 2 (which
-  Boot 4 no longer manages).
-- Baseline tests (RestClient + @LocalServerPort, isolated temp SQLite) incl. an
-  auth token round-trip proving the gson serializer under Jackson 3.
-- Java LSP config, Java migrator agent, migration plan + playbook, extended test router.
-
-Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ---
- .github/agents/java-migrator.agent.md         | 26 +++++++++
- .github/hooks/scripts/test-router.sh          |  4 ++
- .github/lsp.json                              | 11 ++++
- docs/modernization/audit-svc-plan.md          | 40 +++++++++++++
- docs/modernization/migration-playbook.md      | 30 ++++++++++
- services/audit-svc/Dockerfile                 |  4 +-
- services/audit-svc/pom.xml                    | 15 +++--
- .../contoso/audit/AuditApplicationTests.java  | 12 ++++
- .../contoso/audit/AuditControllerTest.java    | 45 +++++++++++++++
- .../com/contoso/audit/AuditTestSupport.java   | 25 ++++++++
- services/auth-svc/Dockerfile                  |  4 +-
- services/auth-svc/pom.xml                     | 25 +++++---
- .../main/java/com/contoso/auth/JwtIssuer.java | 12 ++--
- .../contoso/auth/AuthApplicationTests.java    | 12 ++++
- .../com/contoso/auth/AuthTestSupport.java     | 25 ++++++++
- .../com/contoso/auth/TokenControllerTest.java | 57 +++++++++++++++++++
- 16 files changed, 322 insertions(+), 25 deletions(-)
+ .github/PULL_REQUEST_TEMPLATE.md              |  64 +++
+ .github/agents/java-migrator.agent.md         | 285 ++++++++++++
+ .github/copilot-instructions.md               | 122 ++++--
+ .github/hooks/hooks.json                      |  38 +-
+ .github/hooks/scripts/test-router.sh          |   4 +
+ .github/lsp.json                              |  50 +++
+ ARCHITECTURE.md                               | 397 +++++++++++++----
+ CONTRIBUTING.md                               | 157 +++++++
+ README.md                                     |  96 +++--
+ docs/modernization/audit-svc-plan.md          | 231 ++++++++++
+ docs/modernization/auth-svc-plan.md           | 131 ++++++
+ docs/modernization/migration-playbook.md      | 406 ++++++++++++++++++
+ exercises.md                                  |   8 +-
+ services/audit-svc/Dockerfile                 |   4 +-
+ services/audit-svc/README.md                  |  17 +-
+ services/audit-svc/pom.xml                    |  15 +-
+ .../contoso/audit/AuditApplicationTests.java  |  12 +
+ .../AuditControllerIntegrationTests.java      |  94 ++++
+ .../AuditRepositoryIntegrationTests.java      |  75 ++++
+ .../com/contoso/audit/AuditTestDatabase.java  |  29 ++
+ services/auth-svc/Dockerfile                  |   4 +-
+ services/auth-svc/README.md                   |  15 +-
+ services/auth-svc/pom.xml                     |  25 +-
+ .../main/java/com/contoso/auth/JwtIssuer.java |  12 +-
+ .../contoso/auth/AuthApplicationTests.java    |  12 +
+ .../com/contoso/auth/AuthTestDatabase.java    |  29 ++
+ .../auth/TokenControllerIntegrationTests.java | 110 +++++
+ 27 files changed, 2220 insertions(+), 222 deletions(-)
+ create mode 100644 .github/PULL_REQUEST_TEMPLATE.md
  create mode 100644 .github/agents/java-migrator.agent.md
  create mode 100644 .github/lsp.json
+ create mode 100644 CONTRIBUTING.md
  create mode 100644 docs/modernization/audit-svc-plan.md
+ create mode 100644 docs/modernization/auth-svc-plan.md
  create mode 100644 docs/modernization/migration-playbook.md
  create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditApplicationTests.java
- create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditControllerTest.java
- create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditTestSupport.java
+ create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditControllerIntegrationTests.java
+ create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditRepositoryIntegrationTests.java
+ create mode 100644 services/audit-svc/src/test/java/com/contoso/audit/AuditTestDatabase.java
  create mode 100644 services/auth-svc/src/test/java/com/contoso/auth/AuthApplicationTests.java
- create mode 100644 services/auth-svc/src/test/java/com/contoso/auth/AuthTestSupport.java
- create mode 100644 services/auth-svc/src/test/java/com/contoso/auth/TokenControllerTest.java
+ create mode 100644 services/auth-svc/src/test/java/com/contoso/auth/AuthTestDatabase.java
+ create mode 100644 services/auth-svc/src/test/java/com/contoso/auth/TokenControllerIntegrationTests.java
 
+diff --git a/.github/PULL_REQUEST_TEMPLATE.md b/.github/PULL_REQUEST_TEMPLATE.md
+new file mode 100644
+index 0000000..e463add
+--- /dev/null
++++ b/.github/PULL_REQUEST_TEMPLATE.md
+@@ -0,0 +1,64 @@
++## Description
++
++<!-- Provide a brief summary of your changes and the motivation behind them. -->
++
++## Related Issue
++
++<!-- All changes should start with an issue. Link it below (e.g. "Closes #123"). -->
++
++
++## Type of Change
++
++<!-- Check the relevant option(s) -->
++
++- [ ] 🐛 Bug fix (non-breaking change that fixes an issue)
++- [ ] ✨ New feature (non-breaking change that adds functionality)
++- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to change)
++- [ ] 📚 Documentation update
++- [ ] 🧪 Test update
++- [ ] 🔧 Refactor (no functional changes)
++
++## Affected Services
++
++<!-- Check the services/areas this PR touches -->
++
++- [ ] `web` (Astro SSR + React)
++- [ ] `assets-svc` (.NET 10)
++- [ ] `workforce-svc` (Java 21 / Spring Boot 3)
++- [ ] `reporting-svc` (Python FastAPI)
++- [ ] `notifications-svc` (Python FastAPI)
++- [ ] `audit-svc` (Java 21 / Spring Boot 4.1)
++- [ ] `auth-svc` (Java 21 / Spring Boot 4.1)
++- [ ] devcontainer / tooling / docs
++
++## Changes Made
++
++<!-- List the key changes in this PR -->
++
++-
++
++## Testing
++
++<!-- Check the suites you ran for the services you changed. Not every box applies to every PR. -->
++
++- [ ] End-to-end (web): `npm run test:e2e` (Playwright) passes
++- [ ] .NET: `dotnet test` in `services/assets-svc` passes
++- [ ] Python: `pytest` in `services/reporting-svc` and/or `services/notifications-svc` passes
++- [ ] Modern Java: `mvn test` in `services/workforce-svc` passes
++- [ ] Spring Boot 4 Java: `mvn test` in `services/audit-svc` and/or `services/auth-svc` passes
++- [ ] Manually verified the app runs (`npm run dev` or `docker compose up --build`) and the affected flow works at http://localhost:4321
++
++## Checklist
++
++<!-- Ensure all items are complete before requesting review -->
++
++- [ ] My change targets `main` (I have not hand-edited generated learner branches or promoted refs — see CONTRIBUTING.md)
++- [ ] My code follows the project's coding standards for the affected language/stack
++- [ ] My changes are focused on a single concern
++- [ ] I have added or updated tests where it makes sense
++- [ ] I have updated documentation (README, per-service READMEs, `exercises.md`) if needed
++- [ ] I have written clear commit messages explaining what and why
++
++## Additional Notes
++
++<!-- Any additional context, concerns, or notes for reviewers -->
 diff --git a/.github/agents/java-migrator.agent.md b/.github/agents/java-migrator.agent.md
 new file mode 100644
-index 0000000..614990a
+index 0000000..afccfc5
 --- /dev/null
 +++ b/.github/agents/java-migrator.agent.md
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,285 @@
 +---
-+description: 'Modernizes one lagging Java service (and only its wiring) through a saved migration plan, one reviewable phase at a time.'
 +name: 'Java migrator'
-+tools: [read, edit, execute, search]
++description: 'Modernizes one Java service at a time through approval-gated phases, with clean Maven, bytecode, dependency, and end-to-end verification.'
++tools: [read, edit, execute]
 +---
 +
 +# Java migrator
 +
-+You bring **one** currency-lagging Java service current at a time by following a saved migration plan. You are scoped to the target service and the repository wiring that service depends on — **never** another service's source or the frontend. Your scope is an instruction you must hold to, not a sandbox: `edit` and `execute` can reach the whole repo, so stay inside the service you were asked to migrate.
++You modernize exactly one AssetTrack Java service and its exclusively associated
++wiring at a time.
 +
-+## Process (one phase at a time)
++Follow `docs/modernization/migration-playbook.md` as the process authority. Use
++the selected service's approved migration plan or profile for exact versions,
++dependency decisions, risks, and service-specific exit criteria. If the two
++documents differ, the playbook governs process and evidence; the service plan
++governs the selected service's approved technical target.
 +
-+1. **Read the plan.** Read `docs/modernization/audit-svc-plan.md` (or the plan named for the service you were asked to migrate). Treat its phases as the contract.
-+2. **Confirm the safety net.** Run the service's Maven tests and confirm the baseline is green *before* changing anything. If there is no baseline suite, stop and say so.
-+3. **Apply one phase, then stop.** Make only the changes for the current phase. After each phase, run the service's tests (`mvn verify` / `mvn test` from the service directory) and **stop for approval before starting the next phase.** Report the result of each phase; if a phase fails, report the failure and wait — do not press on.
-+4. **Finish the job.** Once every phase is approved and green:
-+   - Run the Playwright end-to-end suite (`npm run test:e2e`) as a final cross-system gate.
-+   - Wire the modernized service into the repo's test router (`.github/hooks/scripts/test-router.sh`) so its tests run on edits.
-+5. **Report.** End with a testing status report that names the target stack (Java 21 / Spring Boot 4.1.0) and confirms **both** layers passed on it: the service's unit/integration tests and the end-to-end suite. State clearly anything you could not verify.
++For `audit-svc`, use `docs/modernization/audit-svc-plan.md` as its service
++profile. For `auth-svc`, use `docs/modernization/auth-svc-plan.md` as its
++service profile.
 +
-+## Guardrails
++## Hard scope boundary
 +
-+- Keep `JdbcTemplate` data access as-is during a framework bump. A move to Spring Data JPA is a separate project, not part of the upgrade.
-+- Do not copy another service's dependencies (e.g. `workforce-svc`'s JPA/Hibernate) into the service you're migrating.
-+- Boot 4 defaults to **Jackson 3** (`tools.jackson`) and no longer manages Jackson 2. Watch libraries that carry their own Jackson 2 (e.g. `jjwt-jackson`): prefer swapping to a Jackson-free serializer (`jjwt-gson`) over reintroducing an unmanaged Jackson 2. Pin BOM-managed libs (Jackson 3, Log4j2) to CVE-clean patches.
-+- Read the diff at every gate. Validation between phases is where a fast upgrade catches its own mistakes.
++- Work on exactly one service selected by the user.
++- Edit only the selected service and repository-level wiring, documentation, or
++  CI entries that exclusively configure or describe that service.
++- Never edit another service or the frontend unless a separately approved
++  cross-service migration profile explicitly requires it.
++- Running repository integration or Playwright tests is verification, not
++  permission to edit unrelated services or tests.
++- Do not copy dependencies, configuration, persistence patterns, or code from a
++  sibling service unless the selected service profile explicitly requires it.
++- Preserve documented public HTTP behavior, JSON fields, database ownership,
++  schema, seed data, environment contracts, and integration behavior.
++- Preserve intentional course vulnerabilities and exercise targets that are
++  outside the selected migration. For `audit-svc`, do not fix
++  `AuditRepository.search()` SQL injection during modernization.
++- Never introduce or knowingly retain a newly introduced vulnerable dependency.
++- Treat optional refactoring, persistence changes, virtual threads, connection
++  pool changes, performance tuning, feature work, and unrelated bug fixes as
++  separately approved follow-ons.
++- Do not commit generated IDE or language-server metadata such as `.classpath`,
++  `.project`, or `.settings` unless the repository intentionally tracks it.
++
++If a requested change crosses these boundaries, stop and explain the boundary.
++Do not make a partial cross-service change.
++
++## Required preparation
++
++Before changing files:
++
++1. Read the complete migration playbook and selected service profile.
++2. Read the selected service README, root architecture and exercise
++   documentation, `pom.xml`, source, tests, runtime configuration, Dockerfile,
++   and repository instructions that apply to Java files.
++3. Inspect the worktree and preserve unrelated user changes, including changes
++   already present in files you need to edit.
++4. Identify the actual phase from code, resolved configuration, tests, and
++   runtime wiring. Do not infer completion from a plan checkbox or prior report.
++5. Confirm the active JDK, current Java compile target, Spring Boot parent,
++   dependency pins, and committed build/runtime image versions.
++6. State the phase objective, current and target versions, allowed files,
++   expected edits, validation commands, and exit criteria before implementing.
++
++For a service without an approved migration profile, stop and ask the user to
++approve one. Do not apply `audit-svc` versions or dependency decisions to
++another service.
++
++## Phase protocol
++
++Work on only one user-approved phase per turn.
++
++1. Implement the smallest complete set of changes for the current phase.
++2. Update directly affected service documentation without changing unrelated
++   course content.
++3. Run every gate required by this agent, the playbook, and the selected
++   service profile.
++4. If a failure was caused by the current phase, diagnose and fix it within the
++   scope boundary, then rerun the complete phase gate.
++5. If a failure is unrelated, requires another service or frontend change, or
++   cannot be resolved safely within the phase, stop and report the blocker.
++6. Review `git diff --check`, the scoped diff, and worktree status before
++   reporting completion.
++7. Report:
++   - phase, current stack, and target stack;
++   - files changed;
++   - commands run;
++   - tests, failures, errors, and skipped counts;
++   - runtime, bytecode, dependency, and security evidence required by the
++     phase;
++   - non-blocking warnings;
++   - remaining risks or blockers.
++8. End with `Awaiting approval to begin Phase N.` Do not start the next phase
++   until the user explicitly approves it.
++
++Approval applies only to the next phase. Never treat silence, a test pass, or a
++general instruction to modernize as approval to combine phases.
++
++## Validation rules
++
++### Maven lifecycle
++
++- Run `mvn test` in every implementation phase.
++- Run `mvn verify` when required by the service profile.
++- Run `mvn clean verify` after changing the Java target, Spring Boot parent,
++  build plugins, annotation processors, generated sources, or dependencies that
++  can affect compilation or packaging.
++- Do not treat an incremental Maven pass as proof that existing classes were
++  rebuilt for the new Java release.
++
++### Java evidence
++
++- Confirm the active Maven JVM with `java -version` and `mvn -version`.
++- After a Java target change, inspect a cleanly compiled application class with
++  `javap -verbose` and report its major version.
++- Java 17 bytecode is major version `61`; Java 21 bytecode is major version
++  `65`.
++- Do not use `mvn help:evaluate -Dexpression=java.version` as the sole compiler
++  check. It can report the running JVM version rather than proving the project
++  release or current bytecode.
++
++### Test evidence
++
++- Read Surefire or Failsafe reports after the final gate and report named
++  totals, not inferred counts from console output.
++- A phase is not green with unexplained failures, errors, or skipped required
++  coverage.
++- Tests must use isolated service-owned data. Never allow tests to read or write
++  a developer or runtime database path.
++
++### Dependency evidence
++
++- Inspect the resolved dependency tree after a framework or dependency change.
++- Confirm required framework, server, serializer, and security-pin versions.
++- Check for unexpected duplicate major versions and legacy transitive
++  serializers or integration libraries.
++- A dependency tree proves resolution, not vulnerability status. Run the
++  repository-approved advisory or software-composition check when available;
++  otherwise state the source and date of the approved manual assessment.
++- Never describe a dependency graph as CVE-clean solely because
++  `mvn dependency:tree` succeeded.
++
++### Completion evidence
++
++- A configured version is not proof that the runtime, package, or bytecode uses
++  it.
++- Do not report `PASS`, phase completion, or migration completion unless the
++  named commands succeeded against the current worktree.
++- Documentation-only changes do not require Maven validation unless they alter
++  executable configuration or the repository has documentation tests.
++
++## Standard phases
++
++### Phase 0 - Behavioral safety net
++
++- Keep the current Java target and Spring Boot version unchanged.
++- Establish context, controller, repository, initialization, and public JSON
++  behavior coverage.
++- Use an isolated temporary database and prove runtime data paths are not used.
++- Ensure initialization is repeatable and seed rows are not duplicated.
++- Run `mvn test` and `mvn verify`.
++- Record baseline test totals and stop for approval.
++
++### Phase 1 - Java toolchain and runtime
++
++- Change the Maven Java target while the Spring Boot parent remains fixed.
++- Update committed service-specific Docker build and runtime images, scripts,
++  CI, deployment wiring, and documentation that still select the old JDK.
++- Do not edit or commit generated IDE metadata.
++- Run:
++
++  ```bash
++  java -version
++  mvn -version
++  mvn test
++  mvn verify
++  mvn clean verify
++  javap -verbose target/classes/path/to/Application.class
++  ```
++
++- Confirm clean bytecode matches the target release and stop for approval.
++
++### Phase 2 - Spring Boot and managed dependencies
++
++- Move from the approved current maintenance release to the exact target Spring
++  Boot version.
++- Apply only dependency and configuration changes required by the selected
++  service profile.
++- Preserve or re-point documented security pins rather than deleting them
++  reflexively.
++- For Spring Boot 4, inspect the Jackson 3 transition and test public JSON even
++  when application code does not import Jackson types directly.
++- Do not add sibling-service ORM, validation, token, or persistence
++  dependencies without an explicit requirement.
++- Run:
++
++  ```bash
++  mvn dependency:tree
++  mvn test
++  mvn clean verify
++  ```
++
++- Run the approved dependency-security gate, confirm required resolved
++  versions, and stop for approval.
++
++### Phase 3 - Stabilization
++
++- Remove temporary migration aids.
++- Apply only required or explicitly approved stabilization.
++- Update final service documentation and verify container/runtime
++  configuration.
++- Keep Java refactoring, persistence migration, virtual threads, connection
++  tuning, concurrency changes, and CI expansion as separate decisions.
++- Run `mvn dependency:tree`, `mvn test`, and `mvn clean verify`.
++- Stop and request approval for the final end-to-end gate.
++
++## Audit service profile
++
++Read exact phase versions and dependency requirements from
++`docs/modernization/audit-svc-plan.md`; do not duplicate or infer them here.
++Apply these additional constraints:
++
++- keep raw `JdbcTemplate` and SQLite;
++- do not add JPA, Hibernate, workforce dependencies, or unrelated validation
++  libraries;
++- preserve the SQL injection exercise target;
++- preserve endpoint JSON, status behavior, schema, and deterministic seed data;
++- treat `last_insert_rowid()` concurrency and Hikari pool changes as optional
++  follow-on work, not required framework migration.
++
++## Auth service profile
++
++Read exact phase versions and dependency requirements from
++`docs/modernization/auth-svc-plan.md`; do not duplicate or infer them here.
++Apply these additional constraints:
++
++- replace the `jjwt-jackson` serializer with `jjwt-gson` and bump the `jjwt`
++  artifacts to the profile's target, so the vulnerable transitive Jackson 2 is
++  removed from `auth-svc` entirely;
++- migrate `JwtIssuer` to the jjwt `0.12.x` builder API while preserving the
++  exact issued claims and the RS256 signature;
++- preserve the `/token` response contract, the published JWKS contract, user
++  seed data, and database ownership;
++- preserve the intentional auth exercise vulnerabilities and teaching gaps;
++- keep raw `JdbcTemplate` and SQLite; do not add JPA, Hibernate, or sibling
++  service dependencies.
++
++## Final end-to-end gate
++
++After all service phases are approved and green:
++
++1. Confirm the selected service's final Java, bytecode, Spring Boot, serializer,
++   embedded server, and security-pin versions.
++2. Run the repository end-to-end suite from the repository root:
++
++   ```bash
++   npm run test:e2e
++   ```
++
++3. Do not weaken, skip, or rewrite Playwright tests to obtain a pass.
++4. Fix only failures caused by the selected service or its exclusive wiring.
++5. If a fix requires another service or frontend change, report the failure and
++   stop without claiming completion.
++6. After any final-gate fix, rerun the selected service's `mvn clean verify`,
++   dependency checks, and the full end-to-end suite.
++
++## Final testing status report
++
++Finish only when all required verification layers pass on the target stack:
++
++```markdown
++## Testing status
++
++| Layer | Target stack | Command | Result |
++|---|---|---|---|
++| Service | Java <version> / Spring Boot <version> | `mvn test` and `mvn clean verify` | PASS - <tests, failures, errors, skipped> |
++| Bytecode | Java <version> | `javap -verbose ...` | PASS - major version <value> |
++| Dependencies | Target managed graph | `mvn dependency:tree` and approved security check | PASS - <key versions> |
++| End to end | Target service integrated with AssetTrack | `npm run test:e2e` | PASS - <passed, failed, skipped> |
++```
++
++List final Spring Framework, embedded server, serializer, Jackson, and Log4j2
++versions when applicable. Include remaining non-blocking warnings and excluded
++follow-on work. Never report the migration complete unless the current
++worktree has passed every required final gate.
+diff --git a/.github/copilot-instructions.md b/.github/copilot-instructions.md
+index aedf6f3..d9f706e 100644
+--- a/.github/copilot-instructions.md
++++ b/.github/copilot-instructions.md
+@@ -1,79 +1,119 @@
+ # Copilot instructions for AssetTrack
+ 
+-## Big picture
++## Repository model
+ 
+-AssetTrack is a teaching-oriented polyglot microservices app for internal asset and employee assignment tracking.
++AssetTrack is an intentionally vulnerable teaching application with seven independently runnable services and a separate course-branch generation subsystem. Before fixing an apparent defect, check `exercises.md`, the root `README.md`, and the affected service README; validation, authentication, SQL injection, resilience, and modernization gaps may be deliberate exercise targets.
+ 
+-- `web` is an Astro SSR frontend and BFF; it calls backend services server-side only.
+-- Most backend services own a local SQLite database.
+-- `reporting-svc` reads live data from other services and does not own a primary DB.
+-- `auth-svc` and `audit-svc` are intentionally legacy Java 11 / Spring Boot 2.7 services.
+-- All service-to-service traffic is REST/JSON.
++- `services/web` is the browser-facing Astro SSR application and backend-for-frontend. Browser requests go to Astro; Astro server code calls the backend services.
++- `assets-svc` owns assets in SQLite and uses .NET 10 minimal APIs with Dapper.
++- `workforce-svc` owns employees and assignments in SQLite and uses Java 21, Spring Boot, JPA, and Hibernate.
++- `reporting-svc` is a stateless FastAPI composition service. It reads live data from other services and proxies CSV imports to `assets-svc`.
++- `notifications-svc` receives assignment webhooks and persists a local SQLite event log.
++- `audit-svc` and `auth-svc` use Java 21, Spring Boot 4.1, raw JDBC, and SQLite.
++- Databases are service-owned. Cross-service IDs such as `Assignment.assetId` are scalar references with no database foreign keys or shared transactions.
++- Auth issues JWTs, but the web and domain services do not yet forward or validate them. Audit integration is also configured but not wired.
+ 
+-## Commands
++`course-build/` is not an application service. It stores ordered patch deltas and scripts that deterministically generate cumulative `start-of-module-*` learner branches. Make application changes on `main`; do not edit generated learner refs or promotion refs directly.
+ 
+-### Root
++## Build, run, test, and lint
++
++Use the devcontainer toolchain: Node 22, .NET 10, Python 3.12, Maven, and JDK 21.
++
++### Whole stack
+ 
+ ```bash
+-npm run dev
+-npm run dev:verbose
++npm install
+ npm run install:all
+-docker compose up --build
++npm run dev                 # all services on ports 4321 and 5001-5006
++npm run dev:verbose
++docker compose up --build   # optional containerized flow
+ ```
+ 
+-### `web`
++The root `package.json` is a process orchestrator; it has no repository-wide build, test, or lint script.
++
++### Web (`services/web`)
+ 
+ ```bash
+-npm --prefix services/web run dev
+-npm --prefix services/web run build
+-npm --prefix services/web run preview
+-npm --prefix services/web run start
++cd services/web
++npm install
++npm run dev
++npm run build
++npm run preview
+ ```
+ 
+-### `assets-svc`
++There is currently no web unit-test, end-to-end-test, or lint script on `main`.
++
++### Assets service (`services/assets-svc`)
+ 
+ ```bash
+-dotnet run
++dotnet build services/assets-svc/AssetsService.csproj
+ dotnet test services/assets-svc/Tests/AssetsService.Tests.csproj
+-dotnet test services/assets-svc/Tests/AssetsService.Tests.csproj --filter FullyQualifiedName~AssetsDbTests
++dotnet test services/assets-svc/Tests/AssetsService.Tests.csproj --filter 'FullyQualifiedName~AssetsDbTests'
++dotnet test services/assets-svc/Tests/AssetsService.Tests.csproj --filter 'FullyQualifiedName~AssetsDbTests.Initialize_creates_assets_table_and_seed_data'
+ ```
+ 
+-### `workforce-svc`
++Run locally with `npm run dev:assets` from the root or `dotnet run --project services/assets-svc/AssetsService.csproj` with `ASSETS_DB_PATH` pointing to a writable file.
++
++### Workforce service (`services/workforce-svc`)
+ 
+ ```bash
++cd services/workforce-svc
++WORKFORCE_DB_PATH=/tmp/assettrack-workforce-test.db mvn test
++WORKFORCE_DB_PATH=/tmp/assettrack-workforce-test.db mvn -Dtest=WorkforceApplicationTests test
++WORKFORCE_DB_PATH=/tmp/assettrack-workforce-test.db mvn -Dtest=WorkforceApplicationTests#contextLoads test
+ mvn spring-boot:run
+-mvn test
+-mvn -Dtest=WorkforceApplicationTests test
+ ```
+ 
+-### `reporting-svc`
++### Audit and auth services
++
++From either `services/audit-svc` or `services/auth-svc`:
+ 
+ ```bash
+-pip install -e ".[dev]"
+-uvicorn app.main:app --reload --port 8080
+-ruff check .
++mvn test
++mvn spring-boot:run
+ ```
+ 
+-### `notifications-svc`
++Both modules have characterization tests that use isolated temporary SQLite
++databases. Run one with `mvn -Dtest=ClassName#methodName test`.
++
++### Python services
+ 
+ ```bash
+-pip install -e services/notifications-svc
++cd services/reporting-svc
++pip install -e ".[dev]"
++ruff check .
++# Once tests exist:
++python -m pytest -q
++python -m pytest tests/test_file.py::test_name
++
++cd ../notifications-svc
++pip install -e .
+ uvicorn app.main:app --reload --port 8080
+ ```
+ 
+-### `audit-svc` and `auth-svc`
++`reporting-svc/tests` currently contains only a README, and `notifications-svc` has no test or lint configuration.
++
++### Course branch tooling
+ 
+ ```bash
+-mvn spring-boot:run
++node course-build/scripts/build-branches.mjs --check
++node course-build/scripts/selftest.mjs
++course-build/scripts/validate-branch.sh start-of-module-04
+ ```
+ 
+-## Conventions
+-
+-- Keep Astro data fetching on the server; use `services/web/src/lib/api/client.ts` and env vars rather than browser-side service calls.
+-- `web` resolves service URLs from `process.env`, not `import.meta.env`, so container runtime values work correctly.
+-- `assets-svc` is a .NET 8 minimal-API app; startup initializes the SQLite schema/seed data and exposes Swagger.
+-- Spring services use a thin controller/service/repository split; business rules live in services, not controllers.
+-- `workforce-svc` keeps the one-active-assignment-per-asset rule, but some other rules are intentionally left unenforced for exercises.
+-- Python services organize FastAPI routers under `app/routers/`; `reporting-svc` uses routers plus module-level service URLs.
+-- Legacy Java services use raw JDBC and seeded SQLite data in `DataInit`; their insecure patterns are intentional teaching targets.
+-- Several gaps are deliberate course exercises; check `README.md`, service READMEs, and `exercises.md` before "fixing" something that is meant to stay broken.
++The validation script creates temporary refs/worktrees and runs every suite present in the generated learner state. Use it for `course-build/**` changes, not as a substitute for testing a normal service change.
++
++## Codebase-specific conventions
++
++- Keep web data access server-side. Add typed backend calls under `services/web/src/lib/api/` and call them from Astro frontmatter; do not fetch services directly from browser JavaScript.
++- Service URLs in the web client come from `process.env`, not `import.meta.env`, so Docker/runtime values are not baked into the build. Preserve the `SERVICE_URLS` and `apiFetch` boundary.
++- Prefer Astro pages/components and Bootstrap 5. React is installed but currently unused; introduce an island only for interaction that requires client-side state.
++- Dashboard-style composition tolerates partial backend failure and renders warnings. Preserve explicit partial-data behavior when changing multi-service pages.
++- Keep `assets-svc` as minimal APIs: register infrastructure in `Program.cs`, map domain routes through endpoint extension classes, open connections through `AssetsDb`, and use Dapper parameters rather than interpolating user input. Preserve `public partial class Program` for `WebApplicationFactory`.
++- `workforce-svc` uses controller/service/repository separation. Business and cross-service orchestration belongs in `AssignmentService`; controllers translate results to HTTP responses. Service clients are configured as named `RestClient` beans in `HttpClientsConfig`.
++- Python runtime configuration uses environment variables with container-network defaults. `reporting-svc` splits route groups into `app/routers`; `notifications-svc` is intentionally small and keeps startup, routes, and SQLite persistence in `app/main.py`.
++- SQLite schemas are initialized at startup rather than through migrations. Local development writes ignored databases under each service's `data/`; Compose uses named volumes and `/data`.
++- Preserve public JSON field names and existing HTTP status behavior across service boundaries. There is no generated shared schema, so the typed Astro clients and receiving models must be updated together.
++- Seed data is deterministic and intentionally includes inconsistent states used by exercises. Update `tools/seedgen.py` and regenerate its outputs rather than hand-editing generated seed datasets when the seed model changes.
++- If a task intentionally completes an exercise gap, update the associated README or `exercises.md` wording so documentation no longer claims the old behavior.
++- For `course-build/**`, preserve ordered `git format-patch` deltas, manifest tree hashes, and cumulative branch behavior. Read `course-build/REFS.md` and `course-build/OPERATIONS.md` before changing generation or promotion logic.
+diff --git a/.github/hooks/hooks.json b/.github/hooks/hooks.json
+index 991d758..15fd76f 100644
+--- a/.github/hooks/hooks.json
++++ b/.github/hooks/hooks.json
+@@ -1,20 +1,20 @@
+ {
+-  "version": 1,
+-  "hooks": {
+-    "postToolUse": [
+-      {
+-        "type": "command",
+-        "matcher": "edit|create",
+-        "bash": ".github/hooks/scripts/test-router.sh",
+-        "timeoutSec": 60
+-      }
+-    ],
+-    "agentStop": [
+-      {
+-        "type": "command",
+-        "bash": ".github/hooks/scripts/test-router.sh",
+-        "timeoutSec": 90
+-      }
+-    ]
+-  }
+-}
++    "version": 1,
++    "hooks": {
++        "postToolUse": [
++            {
++                "type": "command",
++                "matcher": "edit|create",
++                "bash": ".github/hooks/scripts/test-router.sh",
++                "timeoutSec": 60
++            }
++        ],
++        "agentStop": [
++            {
++                "type": "command",
++                "bash": ".github/hooks/scripts/test-router.sh",
++                "timeoutSec": 90
++            }
++        ]
++    }
++}
+\ No newline at end of file
 diff --git a/.github/hooks/scripts/test-router.sh b/.github/hooks/scripts/test-router.sh
 index fc8d073..c5ea1c0 100755
 --- a/.github/hooks/scripts/test-router.sh
@@ -106,103 +645,1598 @@ index fc8d073..c5ea1c0 100755
      *) return 0 ;;
 diff --git a/.github/lsp.json b/.github/lsp.json
 new file mode 100644
-index 0000000..a064c1c
+index 0000000..d6a324c
 --- /dev/null
 +++ b/.github/lsp.json
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,50 @@
 +{
-+    "lspServers": {
-+        "java": {
-+            "command": "jdtls",
-+            "args": [],
-+            "fileExtensions": {
-+                ".java": "java"
-+            }
-+        }
++  "lspServers": {
++    "typescript": {
++      "command": "typescript-language-server",
++      "args": ["--stdio"],
++      "fileExtensions": {
++        ".ts": "typescript",
++        ".tsx": "typescriptreact",
++        ".js": "javascript",
++        ".jsx": "javascriptreact"
++      }
++    },
++    "csharp": {
++      "command": "dotnet",
++      "args": [
++        "dnx",
++        "roslyn-language-server",
++        "--yes",
++        "--prerelease",
++        "--",
++        "--stdio",
++        "--autoLoadProjects"
++      ],
++      "fileExtensions": {
++        ".cs": "csharp"
++      }
++    },
++    "java": {
++      "command": "jdtls",
++      "args": [],
++      "fileExtensions": {
++        ".java": "java"
++      }
++    },
++    "python": {
++      "command": "pyright-langserver",
++      "args": ["--stdio"],
++      "fileExtensions": {
++        ".py": "python"
++      }
++    },
++    "astro": {
++      "command": "astro-ls",
++      "args": ["--stdio"],
++      "fileExtensions": {
++        ".astro": "astro"
++      }
 +    }
++  }
 +}
+diff --git a/ARCHITECTURE.md b/ARCHITECTURE.md
+index eec8bab..c484e9b 100644
+--- a/ARCHITECTURE.md
++++ b/ARCHITECTURE.md
+@@ -1,95 +1,302 @@
+-# AssetTrack architecture
+-
+-AssetTrack is a teaching repo with seven services:
+-
+-- `web` — Astro SSR UI and BFF
+-- `assets-svc` — .NET 8 asset CRUD/search API
+-- `workforce-svc` — Java 21 / Spring Boot 3 employee + assignment API
+-- `reporting-svc` — Python FastAPI reports + CSV import
+-- `notifications-svc` — Python FastAPI webhook receiver
+-- `audit-svc` — legacy Java 11 audit log
+-- `auth-svc` — legacy Java 11 JWT issuer
+-
+-## Shared shape
+-
+-- **Transport:** REST/JSON
+-- **Persistence:** mostly local SQLite per backend service
+-- **Frontend:** Astro SSR pages, server-side API calls, Bootstrap 5
+-- **Intent:** the repo includes deliberate gaps for modernization, validation, and security exercises
+-
+-## `web`
+-
+-- **Purpose:** dashboard, assets, employees, assignments, reports
+-- **Modules:** `src/pages/*`, `src/components/StatusBadge.astro`, `src/layouts/Layout.astro`, `src/lib/api/*`
+-- **Entry points:** `src/pages/index.astro`
+-- **Data layer:** no local DB; calls backend services through `src/lib/api/client.ts`
+-- **Templates:** Astro pages/components/layouts
+-- **Scripts:** `npm run dev`, `npm run build`, `npm run preview`, `npm run start`
+-- **Tech debt:** badge colors are wrong for `retired` and `lost`; new-asset form lacks validation; no assets-by-department page yet
+-- **Unenforced rules:** asset creation validation is intentionally missing end-to-end
+-
+-## `assets-svc`
+-
+-- **Purpose:** asset CRUD, search, stats
+-- **Modules:** `Program.cs`, `Data/AssetsDb.cs`, `Data/SeedData.cs`, `Endpoints/AssetEndpoints.cs`, `Models/Asset.cs`
+-- **Entry points:** `Program.cs`
+-- **Data layer:** SQLite + Dapper; schema and seed data are initialized at startup
+-- **Templates:** none
+-- **Scripts:** `dotnet run`, `dotnet test`
+-- **Tech debt:** `POST /assets` has no input validation; JWT validation is not wired here; seed data is intentionally messy
+-- **Unenforced rules:** required field and date validation are not enforced
+-
+-## `workforce-svc`
+-
+-- **Purpose:** employee and assignment management
+-- **Modules:** `employee/*`, `assignment/*`, `HealthController`, `HttpClientsConfig`, `WorkforceApplication`
+-- **Entry points:** `WorkforceApplication.main`
+-- **Data layer:** Spring Data JPA + Hibernate over SQLite; initial rows come from `src/main/resources/data.sql`
+-- **Templates:** none
+-- **Scripts:** `./mvnw spring-boot:run`, `mvn spring-boot:run`, `mvn test`
+-- **Tech debt:** no audit POST yet; notification webhook errors are swallowed; one outbound `RestClient` for audit exists but is unused
+-- **Unenforced rules:** inactive employees can still receive assets; `returnedDate` is not validated against `assignedDate`
+-
+-## `reporting-svc`
+-
+-- **Purpose:** warranty/utilization reports and CSV bulk import
+-- **Modules:** `app/main.py`, `app/routers/reports.py`, `app/routers/imports_.py`, `app/legacy/format_helpers.py`
+-- **Entry points:** `app/main.py`
+-- **Data layer:** no primary DB; reads live from `assets-svc` and `workforce-svc`
+-- **Templates:** none
+-- **Scripts:** `pip install -e ".[dev]"`, `uvicorn app.main:app --reload`
+-- **Tech debt:** legacy helper style remains on purpose; test suite is intentionally empty; import path lacks robust error handling
+-- **Unenforced rules:** malformed CSV rows crash the whole import
+-
+-## `notifications-svc`
+-
+-- **Purpose:** webhook receiver that stubs email/Slack delivery
+-- **Modules:** `app/main.py`
+-- **Entry points:** `app/main.py`
+-- **Data layer:** local SQLite `events` table via `sqlite3`
+-- **Templates:** none
+-- **Scripts:** `uvicorn app.main:app --reload`
+-- **Tech debt:** synchronous best-effort delivery only; no retry/queue/dead-letter mechanism
+-- **Unenforced rules:** webhook delivery resilience is intentionally absent
+-
+-## `audit-svc`
+-
+-- **Purpose:** append-only audit log
+-- **Modules:** `AuditApplication`, `AuditController`, `AuditRepository`, `DataInit`
+-- **Entry points:** `AuditApplication.main`
+-- **Data layer:** raw JDBC over SQLite; schema and seed events are created in `DataInit`
+-- **Templates:** none
+-- **Scripts:** `mvn spring-boot:run`
+-- **Tech debt:** SQL injection in search; no tests; legacy Spring Boot 2.7 / Java 11
+-- **Unenforced rules:** workforce is not yet posting events here
+-
+-## `auth-svc`
+-
+-- **Purpose:** JWT issuer and user lookup
+-- **Modules:** `AuthApplication`, `TokenController`, `JwtIssuer`, `UserRepository`, `DataInit`
+-- **Entry points:** `AuthApplication.main`
+-- **Data layer:** raw JDBC over SQLite; schema and seed users are created in `DataInit`
+-- **Templates:** none
+-- **Scripts:** `mvn spring-boot:run`
+-- **Tech debt:** SQL injection in username lookup; plain-text seeded passwords; no tests; legacy Spring Boot 2.7 / Java 11
+-- **Unenforced rules:** authentication data is intentionally insecure for course material
++# AssetTrack Architecture
++
++AssetTrack is an intentionally vulnerable, polyglot teaching application. It
++combines seven independently runnable services with a second subsystem that
++generates cumulative learner branches for the Advanced Copilot CLI course.
++
++This document describes the implementation on `main`, including boundaries that
++are planned or configured but not yet enforced.
++
++## System context
++
++```mermaid
++flowchart LR
++    browser([Browser]) -->|HTML and form submissions| web
++
++    subgraph UI
++      web[web<br/>Astro SSR / BFF]
++    end
++
++    subgraph Domain services
++      assets[assets-svc<br/>ASP.NET Core]
++      workforce[workforce-svc<br/>Spring Boot]
++    end
++
++    subgraph Supporting services
++      reporting[reporting-svc<br/>FastAPI]
++      notifications[notifications-svc<br/>FastAPI]
++      audit[audit-svc<br/>Spring Boot]
++      auth[auth-svc<br/>Spring Boot]
++    end
++
++    web -->|asset queries and writes| assets
++    web -->|employees and assignments| workforce
++    web -->|aggregated reports| reporting
++    reporting -->|asset queries and writes| assets
++    workforce -->|assignment-created webhook| notifications
++
++    workforce -.assignment audit not wired.-> audit
++    web -.login/token forwarding not wired.-> auth
++    assets -.JWT/JWKS validation not wired.-> auth
++    workforce -.JWT/JWKS validation not wired.-> auth
++```
++
++`web` is the browser-facing boundary and composes backend responses on the
++server. The backend services communicate primarily through HTTP and JSON.
++`reporting-svc` accepts multipart CSV uploads in addition to JSON APIs.
++
++There is no gateway, message broker, service mesh, shared transaction, or shared
++database. Service URLs are configured through environment variables.
++
++## Services
++
++### `web`
++
++**Purpose:** Server-rendered UI and backend composition.
++
++**Stack:** Astro SSR, the Astro Node adapter, TypeScript, and Bootstrap 5. React
++and the Astro React integration are installed, but no React islands are
++currently used.
++
++**Entry points and modules:**
++
++- `astro.config.mjs` configures standalone Node SSR.
++- `src/pages/**/*.astro` defines filesystem routes.
++- `src/layouts/Layout.astro` provides the shared page shell and navigation.
++- `src/components/StatusBadge.astro` renders asset states.
++- `src/lib/api/client.ts` centralizes backend URLs and HTTP error handling.
++- `src/lib/api/assets.ts`, `workforce.ts`, and `reporting.ts` are typed backend
++  clients.
++
++The dashboard and detail pages make multiple server-side calls and compose the
++result into HTML. There is no browser-side state layer or frontend database.
++
++### `assets-svc`
++
++**Purpose:** Asset CRUD, search, tag lookup, and status statistics.
++
++**Stack:** .NET 10, ASP.NET Core minimal APIs, Dapper, and SQLite.
++
++**Entry points and modules:**
++
++- `Program.cs` configures services, CORS, Swagger, database initialization, and
++  routes.
++- `Endpoints/AssetEndpoints.cs` contains the minimal API handlers.
++- `Models/Asset.cs` defines response and create/update shapes.
++- `Data/AssetsDb.cs` creates the schema and opens connections.
++- `Data/SeedData.cs` populates an empty database.
++
++The service owns the `assets` table. Dates and statuses are stored as text.
++Schema creation happens at startup rather than through versioned migrations.
++
++### `workforce-svc`
++
++**Purpose:** Employee records and asset assignments.
++
++**Stack:** Java 21, Spring Boot 3.5, Spring Data JPA, Hibernate's community
++SQLite dialect, and SQLite.
++
++**Entry points and modules:**
++
++- `WorkforceApplication.java` starts Spring Boot.
++- `employee/` contains the employee entity, repository, and controller.
++- `assignment/` contains the assignment entity, repository, controller, and
++  service.
++- `HttpClientsConfig.java` defines notification and audit `RestClient` beans.
++- `src/main/resources/data.sql` contains generated seed data.
++
++Hibernate updates the schema at startup and Spring loads `data.sql`. Assignments
++store scalar `assetId` and `employeeId` values rather than ORM relationships or
++cross-service foreign keys.
++
++The service enforces one active assignment per asset. Other business rules are
++currently left unenforced.
++
++### `reporting-svc`
++
++**Purpose:** Warranty and utilization reports plus CSV import.
++
++**Stack:** Python 3.12, FastAPI, HTTPX, and Pydantic.
++
++**Entry points and modules:**
++
++- `app/main.py` constructs the FastAPI application.
++- `app/routers/reports.py` queries `assets-svc` and computes live reports.
++- `app/routers/imports_.py` parses CSV uploads and creates assets over HTTP.
++- `app/legacy/format_helpers.py` contains deliberately dated helper code.
++
++The service has no primary database. The `reporting_data` Docker Compose volume
++is currently unused. `WORKFORCE_SVC_URL` is configured but no current report
++uses workforce data.
++
++CSV import is sequential and non-transactional. If a later row fails, assets
++created from earlier rows remain committed.
++
++### `notifications-svc`
++
++**Purpose:** Receive assignment webhooks and stand in for email and Slack
++delivery.
++
++**Stack:** Python 3.12, FastAPI, and the standard-library SQLite driver.
++
++`app/main.py` contains application startup, schema creation, endpoint handlers,
++and persistence. Received payloads are written to a local `events` table and
++logged as email/Slack stubs.
++
++There is no queue, retry, dead-letter path, or independent delivery worker.
++Workforce makes a synchronous HTTP request and catches any resulting exception.
++
++### `audit-svc`
++
++**Purpose:** Store and search audit events.
++
++**Stack:** Java 21, Spring Boot 4.1, Spring JDBC, and SQLite.
++
++- `AuditController.java` exposes event creation and lookup.
++- `AuditRepository.java` performs JDBC operations.
++- `DataInit.java` creates and seeds the table at startup.
++
++The service is operational, but workforce does not currently send assignment
++events to it. The search implementation deliberately concatenates user input
++into SQL as a course security exercise.
++
++### `auth-svc`
++
++**Purpose:** User lookup, credential checking, RS256 JWT issuance, and JWKS
++publication.
++
++**Stack:** Java 21, Spring Boot 4.1, Spring JDBC, JJWT with Gson serialization,
++and SQLite.
++
++- `TokenController.java` exposes token, JWKS, health, and user endpoints.
++- `UserRepository.java` performs user lookup.
++- `JwtIssuer.java` generates the signing key and issues tokens.
++- `DataInit.java` creates and seeds users.
++
++The service seeds plaintext passwords and generates a new RSA key pair at every
++startup. Restarting it invalidates previously issued tokens. Username lookup
++also contains deliberate SQL injection.
++
++No consuming service currently validates these JWTs. `AUTH_JWKS_URL` and
++`DEV_TOKEN_MODE` are configuration placeholders rather than active controls.
++
++## Data ownership
++
++| Store | Owner | Initialization |
++|---|---|---|
++| `assets.db` | `assets-svc` | Dapper startup DDL and generated C# seed data |
++| `workforce.db` | `workforce-svc` | Hibernate schema update and `data.sql` |
++| `notifications.db` | `notifications-svc` | Python import-time SQLite DDL |
++| `audit.db` | `audit-svc` | Spring `CommandLineRunner` DDL and seed inserts |
++| `auth.db` | `auth-svc` | Spring `CommandLineRunner` DDL and seed inserts |
++
++`web` and `reporting-svc` do not own databases.
++
++The databases are independent. For example, an assignment's `assetId` is not a
++foreign key to `assets-svc`, so workforce cannot rely on the database to prove
++that an asset exists or is assignable.
++
++`tools/seedgen.py` deterministically generates asset, employee, assignment, and
++CSV seed data. It intentionally preserves some inconsistent states for course
++exercises, including inactive employees with assignments and lost or retired
++assets that remain assigned.
++
++## Primary request flows
++
++### Render the dashboard
++
++1. The browser requests `/` from `web`.
++2. Astro calls `assets-svc` for status counts.
++3. Astro calls `workforce-svc` for employees.
++4. Astro calls `reporting-svc` for utilization.
++5. Astro composes the responses into server-rendered HTML.
++
++Backend failures are shown as warnings, allowing the page to render partial
++data.
++
++### Create an asset
++
++1. The browser submits the Astro form at `/assets/new`.
++2. Astro converts form values into JSON without validation.
++3. `assets-svc` inserts the values into SQLite.
++4. Astro redirects to the new asset detail page.
++
++Invalid nullable fields, duplicate tags, and database constraints are not
++translated into stable validation responses.
++
++### Create an assignment
++
++1. A client posts an assignment to `workforce-svc`.
++2. Workforce checks only whether the asset already has an active assignment.
++3. JPA saves the assignment.
++4. Workforce synchronously posts an assignment-created webhook to
++   `notifications-svc`.
++5. Notification failures are discarded.
++6. No audit event is sent.
++
++Workforce does not consult `assets-svc`, so it does not prove that the asset
++exists or reject lost or retired assets. It also does not reject inactive or
++nonexistent employees at the service layer.
++
++### Import assets from CSV
++
++1. A client uploads a multipart CSV file to `reporting-svc`.
++2. Reporting checks that required column headers exist.
++3. It posts each row individually to `assets-svc`.
++4. The first parsing or HTTP error aborts the request.
++
++There is no transaction spanning the imported rows, so the operation can leave
++a partially imported file.
++
++## Runtime and deployment
++
++The root `package.json` uses `concurrently` to run all seven services as local
++processes on ports 4321 and 5001-5006. Docker Compose builds one container per
++service and uses port 8080 inside each backend container.
++
++The devcontainer provides Node 22, .NET 10, Python 3.12, Java 21, and Maven.
++The web Dockerfile currently uses Node 20, which differs from the documented
++local development version.
++
++SQLite files live under local service `data/` directories during `npm run dev`
++and named Docker volumes under Compose.
++
++## Course branch subsystem
++
++`course-build/` is independent course infrastructure rather than an application
++runtime service.
++
++- `manifest.json` records the base commit, ordered module deltas, provenance,
++  expected assets, and expected tree hashes.
++- `scripts/build-branches.mjs` constructs cumulative learner branches.
++- `scripts/detect-affected-modules.mjs` maps upstream course changes to modules.
++- `scripts/rederive-asset-module.mjs` recreates deterministic asset-backed
++  deltas.
++- `scripts/validate-branch.sh` builds a learner state and runs every suite
++  present in that state.
++- GitHub Actions regenerate, validate, secret-scan, and promote generated refs.
++
++These workflows provide strong validation for generated learner states, but the
++current repository does not have equivalent general CI for every ordinary
++application pull request.
++
++## Intentionally unenforced rules
++
++The following are known teaching gaps rather than guarantees:
++
++| Area | Unenforced rule or missing control |
++|---|---|
++| Authentication | Backend requests should carry and validate JWTs |
++| Assets | Required fields, allowed statuses, sensible dates, and duplicate tags should produce validation errors |
++| Assignments | Employees and assets should exist before assignment |
++| Assignments | Inactive employees should not receive assets |
++| Assignments | Lost or retired assets should not be assigned |
++| Assignments | Return dates should not precede assignment dates |
++| Auditing | Assignment creation and return should create audit events |
++| Notifications | Delivery should have observable retries or durable failure handling |
++| Imports | Bad CSV rows should be skipped and summarized without corrupting the overall result |
++| Security | SQL input should be parameterized and passwords should be hashed |
++| Quality | Service tests, linting, type checks, and normal pull-request CI should be enforced |
++
++See [`exercises.md`](exercises.md) before correcting an apparent defect: many
++gaps are deliberately preserved as exercise targets.
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..98e1ff4
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,157 @@
++# Contributing to AssetTrack
++
++[fork]: https://github.com/github-samples/contoso-inventory/fork
++[pr]: https://github.com/github-samples/contoso-inventory/compare
++[code-of-conduct]: CODE_OF_CONDUCT.md
++
++Thank you for your interest in contributing to the **AssetTrack (Contoso Industries) sample**! This is an intentionally polyglot microservices application used to teach agentic, Copilot-driven development across a realistic multi-language stack. Your help improving it benefits every learner who works through it.
++
++Contributions to this project are [released](https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license) to the public under the [project's open source license](LICENSE).
++
++Please note that this project is released with a [Contributor Code of Conduct][code-of-conduct]. By participating in this project you agree to abide by its terms.
++
++## Getting Started
++
++### Prerequisites
++
++AssetTrack is a polyglot stack, so the fastest and most reliable way to work on it is inside the provided **devcontainer** — either in [GitHub Codespaces](https://github.com/features/codespaces) or locally with the [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers). The devcontainer provisions everything you need:
++
++- **Node.js 22** — the `web` frontend and the root dev orchestrator
++- **.NET 10** — `assets-svc`
++- **Python 3.12** — `reporting-svc` and `notifications-svc`
++- **Java 21** — runs Maven and is the bytecode target for all JVM services
++- **Maven** — build/test for all three Java services
++
++If you prefer to work without the devcontainer, you'll need all of the above installed natively (Node 22, .NET 10, Python 3.12, Maven, and **Java 21**). Using the devcontainer is strongly recommended so your toolchain matches CI and the course.
++
++### Setting Up Your Development Environment
++
++1. Fork and clone the repository:
++   ```bash
++   git clone https://github.com/YOUR-USERNAME/contoso-inventory.git
++   cd contoso-inventory
++   ```
++
++2. Open the folder in Codespaces or in VS Code and "Reopen in Container". Wait for the devcontainer to finish provisioning (its `postCreateCommand` installs the root npm deps and the editable Python installs for the FastAPI services).
++
++   If you're running natively instead:
++   ```bash
++   npm install
++   npm run install:all
++   ```
++
++3. Start the whole stack from the workspace root:
++   ```bash
++   npm run dev
++   ```
++
++   This runs all seven services as plain processes (no Docker required). Use `npm run dev:verbose` if you want full logs instead of WARN-only output.
++
++4. Open your browser to [http://localhost:4321](http://localhost:4321). Backend services listen on ports 5001–5006 if you want to hit them directly with `curl`.
++
++Prefer containers? A Docker Compose flow is also provided:
++```bash
++docker compose up --build
++```
++
++## Project Structure
++
++- `services/web/` — Astro SSR frontend with React islands (Bootstrap 5); also composes the backend calls (BFF)
++- `services/assets-svc/` — .NET 10 (ASP.NET Core minimal APIs); asset CRUD + search
++- `services/workforce-svc/` — Java 21 / Spring Boot 3; employees + assignments
++- `services/reporting-svc/` — Python 3.12 / FastAPI; reports + CSV bulk import
++- `services/notifications-svc/` — Python 3.12 / FastAPI; webhook receiver + email/Slack stub
++- `services/audit-svc/` — Java 21 / Spring Boot 4.1; audit event log
++- `services/auth-svc/` — Java 21 / Spring Boot 4.1; JWT issuer + user lookup
++- `exercises.md` — the course exercises; several intentional gaps in the code exist to drive these
++- `.devcontainer/` — the devcontainer definition (Node, .NET, Python, Java 21, Maven)
++
++Each service also has its own `README.md` with native run instructions.
++
++## Making Changes
++
++Follow the conventions of whichever service you're touching. A few stack-specific notes:
++
++- **web (Astro/React):** build UI as `.astro` pages/components with React islands where interactivity is needed; use Bootstrap 5 utility classes. Add `data-testid` attributes to interactive elements so the Playwright tests can target them.
++- **assets-svc (.NET 10):** keep endpoints as minimal APIs; validate input on create paths.
++- **workforce-svc (Java 21):** standard Spring Boot 3 conventions.
++- **reporting-svc / notifications-svc (Python/FastAPI):** keep handlers small and typed; prefer `pydantic` models for request/response shapes.
++- **audit-svc / auth-svc (Java 21 / Spring Boot 4.1):** preserve their raw JDBC
++  and SQLite design and check `exercises.md` before changing deliberate
++  teaching gaps such as SQL injection or plain-text passwords.
++
++### Running the tests
++
++Run the suites for the services you changed:
++
++- **End-to-end (web):** from the repo root, `npm run test:e2e` (Playwright browser tests against the running stack).
++- **.NET:** `dotnet test` in `services/assets-svc`.
++- **Python:** `pytest` in `services/reporting-svc` and/or `services/notifications-svc`.
++- **Modern Java:** `mvn test` in `services/workforce-svc`.
++- **Spring Boot 4 Java:** `mvn test` in `services/audit-svc` and/or `services/auth-svc`.
++
++All tests you touch should pass before you open a pull request.
++
++## Course branch system
++
++> [!IMPORTANT]
++> This repository is the source for a hands-on course, and a large part of its layout is **machine-generated and human-gated**. Understanding this before you contribute will save you (and reviewers) a lot of trouble.
++
++- The `start-of-module-*` branches, the `acc-<version>/*` tags, and the `course-build/` directory are **generated artifacts**, not hand-authored source. They are produced by tooling and gated by a human reviewer.
++- **Contributors change `main` only.** Do not hand-edit generated learner branches, and do not promote or push generated refs (`start-of-module-*`, `regen/*`, `acc-*`) directly. Those are produced and published by the maintained build/promotion process, not by contributor PRs.
++- The rules and procedures for how these refs are generated and promoted live in `course-build/REFS.md` and `course-build/OPERATIONS.md`. If your change affects course content or the generated branches, describe the intended outcome on `main` and let the maintainers run the generation/promotion step.
++
++In short: make your change on `main` via a normal pull request, and never treat the generated branches, tags, or `course-build/` outputs as something to edit by hand.
++
++## Submitting a Pull Request
++
++### Issues
++
++All change requests should start with an issue. You're welcome to file the issue alongside the PR, but an issue must always be created so the work can be discussed and tracked.
++
++### Workflow
++
++1. Create a new branch from `main` for your changes:
++   ```bash
++   git checkout -b feature/your-feature-name
++   ```
++
++2. Make your changes, following the conventions of the affected service(s).
++
++3. Run the relevant test suites (see [Running the tests](#running-the-tests)) and make sure the app still starts (`npm run dev`).
++
++4. Commit your changes with a clear, descriptive message:
++   ```bash
++   git commit -m "Add feature: brief description of changes"
++   ```
++
++5. Push to your fork and [submit a pull request][pr].
++
++6. Wait for your pull request to be reviewed and merged.
++
++### Pull Request Guidelines
++
++- Use the pull request template and complete every relevant section, including the affected services and the test suites you ran.
++- Keep your changes focused. Submit unrelated changes as separate pull requests.
++- Write clear commit messages that explain *what* and *why*.
++- Update documentation (the root `README.md`, the per-service `README.md`, or `exercises.md`) if your change affects how the app is run or taught.
++- Target `main` — never the generated course branches (see [Course branch system](#course-branch-system)).
++- Be responsive to feedback and ready to make adjustments.
++
++## Reporting Issues
++
++Found a bug or have a feature request? Please [open an issue](https://github.com/github-samples/contoso-inventory/issues/new/choose) with:
++
++- A clear, descriptive title
++- Which service/stack is affected
++- Steps to reproduce (for bugs)
++- Expected vs. actual behavior
++- Screenshots or logs if applicable
++- Your environment details (OS, and Node/.NET/Java/Python versions as relevant)
++
++## Resources
++
++- [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
++- [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
++- [Writing Good Commit Messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
++- [GitHub Help](https://help.github.com)
+diff --git a/README.md b/README.md
+index 8d32df3..5ee7a46 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,11 @@
+ # AssetTrack (Contoso Industries)
+ 
+-AssetTrack is Contoso Industries' internal application for tracking hardware assets (laptops, monitors, phones, badges, docking stations) and the employees they're assigned to. It is intentionally built as a **polyglot microservices** application so that course learners can practice agentic, Copilot-driven development across a realistic multi-language stack — including a couple of older Java services that still need modernization.
++> [!IMPORTANT]
++> **Security Warning**
++>
++> This repository contains intentionally insecure code and an intentionally vulnerable application for educational and security-testing purposes only. Do not deploy it to production, expose it to the public internet, or run it on systems containing sensitive data. Use it only in an isolated, authorized environment, such as a sandbox or disposable virtual machine. You are responsible for preventing unauthorized access, misuse, or unintended impact on your systems and networks.
++
++AssetTrack is Contoso Industries' internal application for tracking hardware assets (laptops, monitors, phones, badges, docking stations) and the employees they're assigned to. It is intentionally built as a **polyglot microservices** application so that course learners can practice agentic, Copilot-driven development across a realistic multi-language stack.
+ 
+ ## Architecture at a glance
+ 
+@@ -9,7 +14,7 @@ flowchart LR
+     browser([Browser]) --> web
+ 
+     subgraph frontend
+-      web[web<br/>Astro SSR + React islands]
++      web[web<br/>Astro SSR / BFF]
+     end
+ 
+     subgraph modern[Modern services]
+@@ -19,38 +24,43 @@ flowchart LR
+       notifications[notifications-svc<br/>Python FastAPI]
+     end
+ 
+-    subgraph behind[Services a generation behind - due for a currency upgrade]
+-      audit[audit-svc<br/>Java 17 / Spring Boot 3.5]
+-      auth[auth-svc<br/>Java 17 / Spring Boot 3.5]
+-    end
++    audit[audit-svc<br/>Java 21 / Spring Boot 4.1]
++    auth[auth-svc<br/>Java 21 / Spring Boot 4.1]
+ 
+     web --> assets
+     web --> workforce
+     web --> reporting
+-    web --> auth
+     workforce -.audit hook<br/>not yet wired.-> audit
+-    workforce --> notifications
+-    assets -.JWKs.-> auth
+-    workforce -.JWKs.-> auth
++    workforce -->|assignment-created webhook| notifications
++    web -.token flow<br/>not yet wired.-> auth
++    assets -.JWT validation<br/>not yet wired.-> auth
++    workforce -.JWT validation<br/>not yet wired.-> auth
+ ```
+ 
+-All services talk over **REST/JSON**. Most backend services own a local SQLite database; `web` is stateless, and `reporting-svc` reads live data from other services instead of owning a primary database.
+-
+-| Service              | Stack                                  | Port  | Owns                                |
+-|----------------------|----------------------------------------|-------|-------------------------------------|
+-| `web`                | Astro (SSR) + React islands + Bootstrap 5 | 4321  | UI, BFF composition                 |
+-| `assets-svc`         | .NET 10 (ASP.NET Core minimal APIs)    | 5001  | Asset CRUD + search                 |
+-| `workforce-svc`      | Java 21 / Spring Boot 3                | 5002  | Employees + Assignments             |
+-| `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Reports, CSV bulk import            |
+-| `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Webhook receiver, email/Slack stub  |
+-| `audit-svc`          | Java 17 / Spring Boot 3.5 *(a generation behind)* | 5005  | Audit event log                     |
+-| `auth-svc`           | Java 17 / Spring Boot 3.5 *(a generation behind)* | 5006  | JWT issuer, user lookup             |
++The browser receives server-rendered HTML from `web`; backend integration is
++primarily REST/JSON, with multipart upload for CSV imports. Services own their
++data independently, but not every service has a database. Cross-service IDs are
++application-level references and do not have database-enforced referential
++integrity.
++
++| Service              | Stack                                  | Port  | Responsibility / storage |
++|----------------------|----------------------------------------|-------|--------------------------|
++| `web`                | Astro SSR + Bootstrap 5; React integration installed but currently unused | 4321 | UI and server-side backend composition; no database |
++| `assets-svc`         | .NET 10 (ASP.NET Core minimal APIs)    | 5001  | Asset CRUD/search; owns SQLite `assets` data |
++| `workforce-svc`      | Java 21 / Spring Boot 3.5              | 5002  | Employees and assignments; owns SQLite workforce data |
++| `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Live reports and CSV import proxy; no primary database |
++| `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Assignment webhook receiver and delivery stubs; owns a SQLite event log |
++| `audit-svc`          | Java 21 / Spring Boot 4.1              | 5005 | Audit event log in SQLite |
++| `auth-svc`           | Java 21 / Spring Boot 4.1              | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
++
++See [`ARCHITECTURE.md`](ARCHITECTURE.md) for service boundaries, request flows,
++data initialization, integration behavior, and currently unenforced rules.
+ 
+ ## Quick start (Codespaces or local devcontainer)
+ 
+ 1. Open the repository in GitHub Codespaces, or in VS Code with the Dev Containers extension.
+ 2. Wait for the devcontainer to finish provisioning. It installs:
+-   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK for all three JVM services; the two currency-lagging services target Java 17 bytecode and build fine on JDK 21).
++   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK and bytecode target for all three JVM services).
+    - `concurrently` and editable Python installs for the FastAPI services (via `postCreateCommand`).
+ 3. From the workspace root:
+ 
+@@ -82,11 +92,9 @@ docker compose up --build
+ 
+ Open http://localhost:4321.
+ 
+-## Repository tour
+-
+-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for a structured repo tour: purpose, modules, entry points, data layers, scripts, and known gaps for each stack.
++## Running a single service for development
+ 
+-Each service folder also has its own `README.md` with native (non-Docker) run instructions and per-service scripts. See:
++Each service folder has its own `README.md` with native (non-Docker) run instructions and per-service scripts. See:
+ 
+ - [`services/web/README.md`](services/web/README.md)
+ - [`services/assets-svc/README.md`](services/assets-svc/README.md)
+@@ -98,19 +106,32 @@ Each service folder also has its own `README.md` with native (non-Docker) run in
+ 
+ ## Auth
+ 
+-`auth-svc` issues RS256 JWTs from `POST /token`. Other services validate tokens via the JWKs document at `http://auth-svc:8080/.well-known/jwks`.
++`auth-svc` issues RS256 JWTs from `POST /token` and publishes its public key at
++`GET /.well-known/jwks`.
+ 
+-For course exercises that aren't about auth, the frontend runs with `DEV_TOKEN_MODE=true`, which uses a pre-issued long-lived token so learners aren't blocked by login flows. To exercise the real flow, set it to `false`.
++JWT validation and frontend token forwarding are **not currently implemented**.
++`AUTH_JWKS_URL` and `DEV_TOKEN_MODE` are configured as placeholders for the auth
++course exercise, but application code does not currently consume them. Setting
++`DEV_TOKEN_MODE=false` does not enable an end-to-end login flow; all service
++endpoints are presently unauthenticated.
+ 
+ ## What's intentionally broken or missing
+ 
+ This is a teaching codebase. Several services have deliberate gaps that drive the course exercises (see [`exercises.md`](exercises.md)). For example:
+ 
+-- The two legacy Java services use raw JDBC string concatenation and have SQL injection.
+-- `reporting-svc` has old-style Python helpers and an import endpoint that crashes on bad rows.
+-- `assets-svc` accepts unvalidated input on create.
++- `auth-svc` and `audit-svc` contain SQL injection targets; auth also uses
++  plaintext seeded passwords and a new in-memory signing key after each restart.
++- JWTs are issued but not validated by other services.
++- `reporting-svc` has old-style Python helpers and a non-transactional import
++  endpoint that can partially import a CSV before a bad row aborts the request.
++- `assets-svc` accepts unvalidated input on create and update.
+ - The dashboard renders some status badges with the wrong colors.
+-- `workforce-svc` does not yet POST to `audit-svc` on assignment changes.
++- `workforce-svc` does not reject inactive employees, nonexistent assets, or
++  invalid return dates; it also does not POST assignment changes to `audit-svc`.
++- Notification delivery has no queue or retry, and workforce silently discards
++  notification failures.
++- Test coverage and ordinary application CI are intentionally incomplete on
++  `main`; most comprehensive validation belongs to generated course states.
+ 
+ See [`exercises.md`](exercises.md) for the full exercise list.
+ 
+@@ -118,6 +139,17 @@ See [`exercises.md`](exercises.md) for the full exercise list.
+ 
+ See [`exercises.md`](exercises.md). Each exercise is **atomic** — completing one is not a prerequisite for another. Exercises cover all five stacks (Astro, .NET, modern Java, Python, legacy Java) so learners can pick what's most useful to them.
+ 
++## Course branch infrastructure
++
++The application source on `main` is also the base for generated
++`start-of-module-*` learner branches. The deterministic branch generator,
++ordered patch deltas, expected tree hashes, and promotion workflows live under
++[`course-build/`](course-build/README.md).
++
++Contributors should change `main`, not generated learner branches or generated
++refs. The course workflows validate generated branch states; they are not a
++substitute for general CI on every application pull request.
++
+ ## License
+ 
+ This project is licensed under the terms of the MIT license. See [LICENSE](LICENSE) for the full text.
 diff --git a/docs/modernization/audit-svc-plan.md b/docs/modernization/audit-svc-plan.md
 new file mode 100644
-index 0000000..c094c32
+index 0000000..4d3869c
 --- /dev/null
 +++ b/docs/modernization/audit-svc-plan.md
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,231 @@
 +# Migration plan: `audit-svc` from Spring Boot 3.5.16 / Java 17 to Spring Boot 4.1.0 / Java 21
 +
 +## 1. Executive summary
 +
-+`audit-svc` is a small, append-only audit-log microservice currently on Spring Boot `3.5.16` / Java `17` — CVE-clean, but a Spring Boot generation and an LTS behind the team's current target. Its sibling `workforce-svc` runs the modern Boot 3.5 / Java 21 baseline, and the goal here is to bring `audit-svc` (and then `auth-svc`) fully current on **Spring Boot 4.1.0 / Java 21**. `audit-svc` uses only `spring-boot-starter-web`, `spring-boot-starter-jdbc`, raw `JdbcTemplate`, and `sqlite-jdbc` — no JPA, no Hibernate, and no direct Jackson use — so its migration surface is unusually narrow. The plan isolates the work into sequential phases — baseline safety net, toolchain alignment, framework bump, and dependency reconciliation — so each phase can be verified and rolled back independently.
++`audit-svc` is a small, append-only audit-log microservice [currently on Spring Boot 3.5.16 / Java 17][pom-audit-L8], a generation behind the current supported line, [Spring Boot 4.1.0 / Java 21 (Spring Framework 7)][spring-boot-4-migration]. Its sibling [`workforce-svc` already runs on Java 21][pom-wf], so the runtime jump is well-trodden; the Spring Boot 4 major is the new work. The service uses only `spring-boot-starter-web`, `spring-boot-starter-jdbc`, raw `JdbcTemplate`, and `sqlite-jdbc` — [no JPA, no Hibernate, no `javax.*` imports, and no direct Jackson or JJWT usage][pom-audit-L25] — so this is the mechanical, low-risk service to modernize first. The mandatory changes are small: two edits in `pom.xml` plus re-pointing the existing currency pins, on top of a baseline test suite added first. The one shift that isn't a version number is that Spring Boot 4 defaults to [Jackson 3][jackson-3] (the `tools.jackson` namespace) and no longer manages Jackson 2, so the service's JSON serialization moves onto the Jackson 3 line; because `audit-svc` never touches Jackson types directly that change is transparent to its code, but Boot 4.1.0 natively resolves a still-vulnerable Jackson `3.1.4`, so the `jackson-bom` pin has to be re-aimed at a clean `3.1.6` rather than dropped. A hard organizational constraint frames the whole upgrade: no phase may introduce a known-vulnerable dependency.
 +
-+## 2. Target stack (pinned, CVE-clean today)
++## 2. Current state vs. target state
 +
-+| Coordinate | Before | After |
-+| --- | --- | --- |
-+| `spring-boot-starter-parent` | `3.5.16` | `4.1.0` |
-+| `java.version` | `17` | `21` |
-+| Jackson | 2.x (managed) | **Jackson 3** (`tools.jackson`), pinned `jackson-bom.version` = `3.1.6` |
-+| Log4j2 API | `2.25.5` | `2.25.5` (pin retained: Boot 4.1.0 manages `2.25.4`, which is vulnerable) |
-+| Dockerfile base | `eclipse-temurin-17` | `eclipse-temurin-21` |
++| Dimension | Current (`audit-svc`) | Target | Source |
++|---|---|---|---|
++| Spring Boot parent | `3.5.16` | `4.1.0` | [pom.xml L8][pom-audit-L8] → [migration guide][spring-boot-4-migration] |
++| Spring Framework | `6.2` | `7.0.8` | [Spring Framework 7 reference][spring-framework-7] |
++| Embedded server | tomcat-embed-core `10.1` (Boot 3.5) | tomcat-embed-core `11.0.22` | [migration guide][spring-boot-4-migration] |
++| Java source/target | `17` | `21` | [pom.xml L19][pom-audit-L19] |
++| JSON binding | Jackson 2 (BOM-pinned `2.22.2`) | Jackson 3, pinned `3.1.6` | [pom.xml L21][pom-audit-L21] → [Jackson 3][jackson-3] |
++| Currency pins | `jackson-bom 2.22.2`, `log4j2 2.25.5` | `jackson-bom 3.1.6`, `log4j2 2.25.5` (re-pinned) | [pom.xml L21–22][pom-audit-L21] |
++| Persistence | Raw `JdbcTemplate` + SQLite | unchanged | [AuditRepository.java][repo-audit] |
++| `javax.*` / Jackson / JJWT imports | None | N/A — no changes needed | all four `.java` files |
++| Tests | None | Baseline suite before migration | — |
 +
-+Boot 4.1.0 natively resolves Jackson 3 `3.1.4` and Log4j2 `2.25.4`, both of which carry a known CVE today; the two pins hold them at CVE-clean `3.1.6` / `2.25.5`. Spring Framework `7.0.8`, Tomcat `11.0.22`, snakeyaml, and HikariCP resolve clean at Boot 4.1.0 with no pin.
++## 3. Scope and key decisions
 +
-+## 3. Jackson 3 reconciliation
++### In scope
 +
-+Spring Boot 4 makes **Jackson 3** (package `tools.jackson`, immutable `JsonMapper`) the default and no longer manages Jackson 2. `audit-svc` returns `Map`/`List` from its `@RestController` methods and imports no Jackson types, so Spring MVC serializes them under Jackson 3 with **zero source changes**. (The coupling that does matter — a library carrying its own Jackson 2 — shows up in `auth-svc`, whose `jjwt-jackson` is swapped for `jjwt-gson`; see the playbook.)
++- Bump the Spring Boot parent from `3.5.16` to `4.1.0` and Java from `17` to `21`.
++- Re-point the currency pins for Boot 4: because Boot `4.1.0` natively resolves a still-vulnerable Jackson `3.1.4` and Log4j2 `2.25.4`, keep both pins but re-aim `<jackson-bom.version>` at Jackson 3 `3.1.6` and hold `<log4j2.version>` at `2.25.5`, then confirm the tree is CVE-clean.
++- Align the toolchain references (IDE metadata) with the new runtime.
++- Add a baseline test suite *before* any framework change, so regressions are detectable.
 +
-+## 4. Phases
++### Explicitly out of scope
 +
-+- **Phase 0 — safety net.** Add `spring-boot-starter-test` (`test` scope) and characterization tests on the current 3.5.16 / 17 stack: a `@SpringBootTest` context-load test and `@LocalServerPort` + `RestClient` endpoint tests, pointed at an isolated temp SQLite DB. Confirm green before touching the runtime.
-+- **Phase 1 — Java 17 → 21.** Bump `<java.version>` to `21` and the Dockerfile bases `temurin-17` → `temurin-21`. Re-run the Phase 0 tests.
-+- **Phase 2 — Boot 3.5.16 → 4.1.0.** Bump the parent, add `<jackson-bom.version>3.1.6</jackson-bom.version>` and keep `<log4j2.version>2.25.5</log4j2.version>`. Note the Boot 4 test-API relocation (`TestRestTemplate`/`LocalServerPort` moved) — the Phase 0 tests already use `RestClient` to avoid it.
-+- **Phase 3 — validate.** `mvn verify` green; confirm the resolved tree is OSV-clean; run the Playwright e2e suite as the cross-system gate.
++| Out-of-scope item | Rationale |
++|---|---|
++| Adding Spring Data JPA / Hibernate | `audit-svc` uses raw `JdbcTemplate`, which is fully supported under [Spring Framework 7 / Boot 4][jdbctemplate]. JPA would add an ORM layer, schema-management risk, and dialect pinning to a service that runs three simple SQL statements. See the optional follow-on. |
++| Copying `workforce-svc` JPA dependencies | `workforce-svc` carries `spring-boot-starter-data-jpa`, `hibernate-community-dialects`, and `spring.jpa.*` properties. Those are workforce-specific and must not be introduced into `audit-svc`. |
++| Fixing the intentional SQL injection | [`AuditRepository.search()`][repo-audit] carries a documented course-exercise comment. That is a separate educational concern, unrelated to the platform migration, and should be tracked as its own issue. |
++| Mandating a Hikari `maximum-pool-size=1` | SQLite's single-writer model and connection-scoped `last_insert_rowid()` are pre-existing realities. Pool hardening reduces write throughput, so it belongs in Phase 4 as a separately validated option. |
 +
-+## 5. Risks
++### Why this service is the mechanical one
 +
-+| Risk | Mitigation |
-+| --- | --- |
-+| Boot 4.1.0 ships a vulnerable Jackson 3 (`3.1.4`) / Log4j2 (`2.25.4`) | Explicit `jackson-bom.version` / `log4j2.version` pins; re-scan the resolved tree with OSV. |
-+| Boot 4 test-API relocation breaks characterization tests | Use `@LocalServerPort` + `RestClient` instead of the moved `TestRestTemplate`. |
-+| Behavior drift across the major bump | Characterization tests written and green on 3.5.16 / 17 first, held constant across the bump. |
++`audit-svc` is the deliberate "easy first" service because its dependency surface barely reacts to the upgrade. A scan of all four source files (`AuditApplication`, `AuditController`, `AuditRepository`, `DataInit`) confirms they import only `org.springframework.*` and `java.util.*`: zero `javax.*` imports, no direct Jackson types, and no JJWT. There is no `javax` → `jakarta` rename to make — the whole baseline is already on Jakarta — and no third-party serializer dragging a transitive Jackson 2 into the tree. The one indirect exposure is JSON serialization through `spring-boot-starter-web`, which Boot 4 moves from Jackson 2 to Jackson 3 for you; since the controller returns plain records and maps, that transition needs verification, not code changes. The substantive dependency-security work — a `jjwt` serializer that pulls a vulnerable Jackson 2 under Boot 4 — lives in the sibling `auth-svc`, not here.
 +
-+## 6. Out of scope
++### Direct version jump is appropriate
 +
-+Introducing Spring Data JPA / Hibernate; fixing the intentional SQL-injection course-exercise code; SQLite pool hardening beyond test isolation. Each is tracked separately.
++The [Spring Boot migration guidance][spring-boot-4-migration] is to be on the latest 3.5.x before upgrading to 4.x. `audit-svc` is already on `3.5.16`, a current 3.5 maintenance release, so a direct jump to `4.1.0` keeps the service on a single, supported baseline. The phases below still isolate the Java/toolchain change from the framework bump so each step is independently verifiable.
++
++## 4. Phased migration plan
++
++### Phase 0 — Baseline safety net (no functional changes)
++
++**Goal:** establish tests and confirm the service compiles and runs on Java 17 / Boot 3.5.16 before anything touches the runtime. Without tests, any regression during the migration is invisible, and the service currently has none.
++
++1. Add `spring-boot-starter-test` to `services/audit-svc/pom.xml` inside `<dependencies>`. It comes from the Boot parent BOM, needs no explicit version, and brings JUnit 5, AssertJ, Mockito, MockMvc, and `@SpringBootTest`:
++
++    ```xml
++    <dependency>
++        <groupId>org.springframework.boot</groupId>
++        <artifactId>spring-boot-starter-test</artifactId>
++        <scope>test</scope>
++    </dependency>
++    ```
++
++2. Create `src/test/java/com/contoso/audit/` with tests covering these contracts (exact content is your choice):
++
++    | Test class | What it verifies |
++    |---|---|
++    | `AuditApplicationTests` | `@SpringBootTest` context loads without errors |
++    | `AuditControllerTest` | `GET /health` → 200, body `{"status":"ok","service":"audit-svc"}`; `POST /events` with a valid body → 200 with a numeric `id`; `GET /events` → 200 returning a JSON array |
++    | `AuditRepositoryTest` | `insert(...)` persists a row and returns a positive `id`; `recent(n)` returns ≤ n rows; `search("assign")` returns matching rows |
++    | `DataInitTest` | running schema init twice does not throw and does not duplicate seed rows (idempotency) |
++
++    Point the tests at an isolated SQLite database (`jdbc:sqlite::memory:` or a temp-file URL) so they never touch production data.
++
++3. Validate on the current stack, still Java 17 / Boot 3.5.16, and record the pass counts:
++
++    ```bash
++    cd services/audit-svc && mvn verify
++    ```
++
++**Exit criteria:** proceed only when `mvn verify` passes cleanly. Do not start Phase 1 with failing tests — pre-existing failures would mask migration regressions.
++
++### Phase 1 — Java 21 and toolchain alignment (Boot stays 3.5.16)
++
++**Goal:** switch the local JDK and every toolchain reference to Java 21 while keeping Spring Boot at 3.5.16, so the Java change is independently verifiable. Running Boot 3.5.16 on Java 21 is fully supported, so this step can be validated at leisure before the framework bump.
++
++1. In [`services/audit-svc/pom.xml` L19][pom-audit-L19], change `<java.version>17</java.version>` to `<java.version>21</java.version>`. The `<parent>` block stays `3.5.16` for now.
++
++2. Optionally, update the IDE metadata the language server generates so it stops flagging false Java 21 errors. These files aren't committed — the language server creates them locally when it imports the project — so edit them only if you see stale errors: in `services/audit-svc/.settings/org.eclipse.jdt.core.prefs`, set the three compiler values to `21`, and in `services/audit-svc/.classpath`, change the JRE container from `JavaSE-17` to `JavaSE-21`:
++
++    ```properties
++    org.eclipse.jdt.core.compiler.codegen.targetPlatform=21
++    org.eclipse.jdt.core.compiler.compliance=21
++    org.eclipse.jdt.core.compiler.source=21
++    ```
++
++3. Confirm `java -version` reports a 21.x JDK, then validate:
++
++    ```bash
++    cd services/audit-svc && mvn verify
++    ```
++
++**Exit criteria:** proceed when the Phase 0 tests still pass under Java 21 on Boot 3.5.16. Boot 3.5 on Java 21 is a supported combination `workforce-svc` already runs, so this phase should be green with no code changes.
++
++### Phase 2 — Spring Boot parent bump to 4.1.0 (core phase)
++
++**Goal:** bump the Spring Boot parent to `4.1.0`, confirm dependencies resolve, re-point the currency pins onto CVE-clean Jackson 3 and Log4j2, and run the full suite.
++
++1. In [`services/audit-svc/pom.xml`][pom-audit-L8], change the parent `<version>` from `3.5.16` to `4.1.0`:
++
++    ```xml
++    <parent>
++        <groupId>org.springframework.boot</groupId>
++        <artifactId>spring-boot-starter-parent</artifactId>
++        <version>4.1.0</version>
++        <relativePath/>
++    </parent>
++    ```
++
++    That plus the `java.version` already set in Phase 1 are the core edits. The three application dependencies (`spring-boot-starter-web`, `spring-boot-starter-jdbc`, `sqlite-jdbc 3.45.3.0`) all work under Boot 4.
++
++2. Re-point the currency pins. Spring Boot 4 defaults to [Jackson 3][jackson-3] (the `tools.jackson` namespace) and no longer manages Jackson 2, but Boot `4.1.0` natively resolves a still-vulnerable Jackson `3.1.4`, so the [`jackson-bom` pin at L21][pom-audit-L21] stays — re-aimed at a CVE-clean Jackson 3 `3.1.6`. Likewise Boot `4.1.0` pulls a vulnerable Log4j2 `2.25.4`, so keep the [`log4j2` pin at L22][pom-audit-L21] at `2.25.5`. Confirm the result with `mvn dependency:tree`: the tree should show Jackson `3.1.6` and Log4j2 `2.25.5` and no known-vulnerable package.
++
++3. Optionally add `spring-boot-properties-migrator` (runtime scope) for this phase only, to catch any [renamed configuration keys][spring-boot-4-migration], then remove it before committing. `audit-svc`'s `application.properties` has only three stable keys (`server.port`, `spring.datasource.url`, `spring.datasource.driver-class-name`), so the migrator is a safety net rather than a necessity.
++
++4. Confirm no application code changes are needed: all four source files import only `org.springframework.*` and `java.util.*`, none reference a Jackson type directly, and the controller returns plain records and maps that Jackson 3 serializes the same way.
++
++5. Do **not** copy `workforce-svc`'s JPA dependencies (`spring-boot-starter-data-jpa`, `hibernate-community-dialects`, `spring-boot-starter-validation`) or its `spring.jpa.*` properties — they are irrelevant to `audit-svc` and must stay absent.
++
++6. Validate:
++
++    ```bash
++    cd services/audit-svc
++    mvn dependency:tree   # confirm resolution + a CVE-clean Jackson 3
++    mvn verify            # compile + all baseline tests pass
++    ```
++
++**Exit criteria:** proceed only when `mvn verify` is fully green with the same test count as Phase 0/1 and `mvn dependency:tree` shows no known-vulnerable package. Any failure here is directly attributable to the Boot 3.5 → 4.1 delta. Rollback is a single revert of the parent version.
++
++### Phase 3 — Stabilization and optional Java 21 modernization
++
++**Goal:** post-migration cleanup, optional hardening, and — because the framework work is so light here — an optional pass that puts Java 21 to use.
++
++1. Remove `spring-boot-properties-migrator` if it was added in Phase 2 — it is not safe to ship.
++2. Evaluate SQLite concurrency only if load testing shows it: `last_insert_rowid()` is connection-scoped, so under a multi-connection pool concurrent `POST /events` requests can read the wrong id. If confirmed, either set `spring.datasource.hikari.maximum-pool-size=1` (serializes writes, lowers throughput) or wrap the insert and id read in a single-connection block. This is not a required consequence of the Boot 4 upgrade.
++3. *(Optional)* Exercise Java 21 now that the service targets it. Because the framework bump was mechanical, this is where `audit-svc` earns some substance: model the audit event as a `record` DTO, use pattern matching or sequenced collections where they simplify the repository code, or note that Spring MVC on virtual threads (`spring.threads.virtual.enabled=true`) is available under Java 21 for I/O-bound request handling. Keep each change behind the same green test suite.
++4. Add a minimal CI workflow running `mvn verify` on Java 21 so the modern stack stays green:
++
++    ```yaml
++    name: audit-svc CI
++    on: [push, pull_request]
++    jobs:
++      build:
++        runs-on: ubuntu-latest
++        steps:
++          - uses: actions/checkout@v4
++          - uses: actions/setup-java@v4
++            with: { java-version: '21', distribution: 'temurin' }
++          - run: mvn -B verify
++            working-directory: services/audit-svc
++    ```
++
++### Optional follow-on: Spring Data JPA (not required)
++
++If a future decision moves `audit-svc` from `JdbcTemplate` to Spring Data JPA for consistency with `workforce-svc`, treat it as a **separate project on its own branch**: add the JPA and dialect dependencies, model an `AuditEvent` `@Entity` and a `JpaRepository`, rewrite `AuditRepository`/`DataInit` and all tests, and add `spring.jpa.*` properties. It changes schema management and connection handling and risks data-type mapping issues, and the [Boot 4 migration guide][spring-boot-4-migration] documents Hibernate behavioral changes. It does not belong in this framework bump.
++
++## 5. Exact file change matrix
++
++| File | Phase | Change | Before | After |
++|---|---|---|---|---|
++| [`audit-svc/pom.xml` L19][pom-audit-L19] | 1 | Edit | `<java.version>17</java.version>` | `<java.version>21</java.version>` |
++| [`audit-svc/pom.xml` L8][pom-audit-L8] | 2 | Edit | `<version>3.5.16</version>` | `<version>4.1.0</version>` |
++| [`audit-svc/pom.xml` L21–22][pom-audit-L21] | 2 | Re-pin | `jackson-bom 2.22.2`, `log4j2 2.25.5` | `jackson-bom 3.1.6` (Jackson 3), `log4j2 2.25.5` |
++| [`audit-svc/pom.xml` L25–39][pom-audit-L25] | 0 | Add | *(no test dep)* | `spring-boot-starter-test` (`test` scope) |
++| `audit-svc/src/**/*.java` | — | No change | no `javax` / Jackson / JJWT imports | no changes needed |
++| `audit-svc/.../application.properties` | — | No change | 3 stable keys | no changes needed |
++
++## 6. Risk register
++
++| ID | Risk | Likelihood | Impact | Phase | Mitigation |
++|---|---|---|---|---|---|
++| R1 | No existing tests — regressions invisible | High (confirmed) | High | Pre-0 | Add the baseline suite in Phase 0 before any change |
++| R2 | Boot 4 major changes a default that alters runtime behavior | Medium | High | 2 | Baseline tests + read the [Boot 4 migration guide][spring-boot-4-migration]; add shifted defaults as explicit checks |
++| R3 | Jackson 3 default serializes differently than Jackson 2 | Low (plain records/maps) | Medium | 2 | Assert JSON responses in Phase 0; compare before/after |
++| R4 | Boot `4.1.0` natively resolves a vulnerable Jackson `3.1.4` and Log4j2 `2.25.4` | High (confirmed) | High | 2 | Keep the currency pins, re-aimed at Jackson `3.1.6` / Log4j2 `2.25.5`; verify with `dependency:tree` |
++| R5 | Boot 4 moved `TestRestTemplate` to `spring-boot-restclient-test` | Medium | Medium | 0/2 | Use `@LocalServerPort` + `RestClient` (or `MockMvc`) for HTTP-level tests; add the `spring-boot-restclient-test` dependency if `TestRestTemplate` is still needed |
++| R6 | IDE shows false Java 17 errors after the pom change | Medium | Low | 1 | Update the locally generated `.classpath`/`.settings` |
++| R7 | `last_insert_rowid()` wrong under concurrency | Medium (pre-existing) | Medium | 3 | Load test; pool-size=1 or single-connection wrapper |
++| R8 | SQL injection in `search()` | High (intentional) | High | Out of scope | Track as a separate issue; keep it out of the migration |
++| R9 | Scope creep into `workforce-svc` JPA | Medium | High | All | Scope boundary above explicitly excludes JPA |
++
++## 7. Validation checklist
++
++**Phase 0 — baseline**
++
++- [ ] `spring-boot-starter-test` added to `pom.xml`
++- [ ] Context-load, controller, repository, and idempotency tests written
++- [ ] `mvn verify` passes on Java 17 / Boot 3.5.16
++
++**Phase 1 — toolchain**
++
++- [ ] `pom.xml` `java.version` set to `21`
++- [ ] *(optional)* locally generated `.settings`/`.classpath` set to Java 21
++- [ ] `mvn verify` passes on Java 21 / Boot 3.5.16
++
++**Phase 2 — framework**
++
++- [ ] `pom.xml` parent set to `4.1.0`
++- [ ] `mvn dependency:tree` shows no resolution failures and a CVE-clean Jackson 3
++- [ ] `jackson-bom` re-pinned to Jackson `3.1.6`, `log4j2` held at `2.25.5`; tree CVE-clean
++- [ ] `mvn verify` — all baseline tests pass on Java 21 / Boot 4.1.0
++- [ ] Endpoints respond: `GET /health`, `POST /events`, `GET /events`
++
++**Phase 3 — stabilization**
++
++- [ ] `spring-boot-properties-migrator` removed if it was added
++- [ ] SQLite pool behavior evaluated and the decision documented
++- [ ] *(optional)* Java 21 modernization applied behind the green suite
++- [ ] CI workflow added and passing on Java 21
++
++## Sources
++
++[pom-audit-L8]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/audit-svc/pom.xml#L8
++[pom-audit-L19]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/audit-svc/pom.xml#L19
++[pom-audit-L21]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/audit-svc/pom.xml#L21-L22
++[pom-audit-L25]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/audit-svc/pom.xml#L25-L39
++[pom-wf]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/workforce-svc/pom.xml#L7-L21
++[repo-audit]: https://github.com/github-samples/contoso-inventory/blob/acc-base/services/audit-svc/src/main/java/com/contoso/audit/AuditRepository.java
++[spring-boot-4-migration]: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide
++[spring-framework-7]: https://docs.spring.io/spring-framework/reference/7.0/index.html
++[jackson-3]: https://github.com/FasterXML/jackson#jackson-30
++[jdbctemplate]: https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html
+diff --git a/docs/modernization/auth-svc-plan.md b/docs/modernization/auth-svc-plan.md
+new file mode 100644
+index 0000000..7e1abdb
+--- /dev/null
++++ b/docs/modernization/auth-svc-plan.md
+@@ -0,0 +1,131 @@
++# Migration plan: `auth-svc` from Spring Boot 3.5.16 / Java 17 to Spring Boot 4.1.0 / Java 21
++
++## 1. Executive summary
++
++`auth-svc` issues JWTs and looks up users. It starts from the same baseline as
++`audit-svc` — Spring Boot 3.5.16 / Java 17, `spring-boot-starter-web` +
++`spring-boot-starter-jdbc` over SQLite — and takes the same runtime and framework
++jump to Spring Boot 4.1.0 / Java 21 (Spring Framework 7). The difference, and the
++whole point of doing this service second, is its token library: `auth-svc` depends
++on `jjwt` `0.11.5` with the `jjwt-jackson` serializer. Under Spring Boot 4 that
++serializer drags in a transitive **Jackson 2**, which Boot 4 no longer manages and
++which trips the "no known-vulnerable dependency" constraint. Clearing it is the
++substance of this upgrade: bump `jjwt` to `0.12.7` and swap `jjwt-jackson` for
++`jjwt-gson`, whose CVE-clean Gson (`2.13.2`) removes Jackson 2 from `auth-svc`
++entirely. The `jjwt` `0.11 → 0.12` bump is also a **breaking API change**, so
++`JwtIssuer` needs small code edits — caught by the Phase 0 safety net.
++
++A hard organizational constraint frames the whole upgrade: **no phase may
++introduce a known-vulnerable dependency.**
++
++## 2. Current state vs. target state
++
++| Dimension | Current (`auth-svc`) | Target | Source |
++|---|---|---|---|
++| Spring Boot parent | `3.5.16` | `4.1.0` | pom.xml → Spring Boot 4 migration guide |
++| Java source/target | `17` | `21` | pom.xml `<java.version>` |
++| JSON binding (web) | Jackson 2 (BOM-pinned `2.22.2`) | Jackson 3, pinned `3.1.6` | pom.xml → Jackson 3 |
++| Currency pins | `jackson-bom 2.22.2`, `log4j2 2.25.5` | `jackson-bom 3.1.6` (re-pinned), `log4j2 2.25.5` (held) | pom.xml |
++| Token library | `jjwt-api/impl/jackson 0.11.5` | `jjwt-api/impl/gson 0.12.7` | pom.xml → jjwt releases |
++| Token serializer | `jjwt-jackson` (pulls transitive Jackson 2) | `jjwt-gson` (Gson `2.13.2`, no Jackson 2) | jjwt-gson |
++| Persistence | Raw `JdbcTemplate` + SQLite `3.45.3.0` | unchanged | `UserRepository` |
++| Tests | Baseline suite (added in the previous exercise) | held constant through migration | — |
++
++## 3. Scope and key decisions
++
++### In scope
++
++- Bump the Spring Boot parent `3.5.16` → `4.1.0` and Java `17` → `21`.
++- Re-point the currency pins for Boot 4: re-aim `<jackson-bom.version>` at a
++  CVE-clean Jackson 3 (`3.1.6`, matching `audit-svc`) and hold `<log4j2.version>`
++  at `2.25.5`, then confirm the resolved tree is CVE-clean.
++- **Replace the token serializer:** bump the three `jjwt` artifacts `0.11.5` →
++  `0.12.7`, and replace `jjwt-jackson` with `jjwt-gson` so the vulnerable
++  transitive Jackson 2 is removed from `auth-svc` entirely. Confirm `jjwt-gson`
++  resolves a CVE-clean Gson (`2.13.2`); pin it explicitly if the resolved version
++  is not clean.
++- **Migrate `JwtIssuer` to the jjwt `0.12.x` API** (breaking change from `0.11`):
++  - `Jwts.builder().setIssuer(...)` → `.issuer(...)`
++  - `.setSubject(...)` → `.subject(...)`
++  - `.setIssuedAt(...)` → `.issuedAt(...)`
++  - `.setExpiration(...)` → `.expiration(...)`
++  - `.signWith(key, SignatureAlgorithm.RS256)` → `.signWith(key, Jwts.SIG.RS256)`
++    (the `SignatureAlgorithm` enum is removed in `0.12`).
++  Preserve the exact issued claims (`iss`, `sub`, `role`, `iat`, `exp`) and the
++  RS256 signature so the `/token` and JWKS contracts are unchanged.
++- Align toolchain references (Dockerfile / IDE metadata) with the new runtime.
++
++### Explicitly out of scope
++
++| Out-of-scope item | Rationale |
++|---|---|
++| "Fixing" the intentional auth vulnerabilities / exercise targets | `auth-svc` carries deliberate teaching gaps. They are separate educational concerns, unrelated to the platform migration, and must be preserved. |
++| Migrating persistence to Spring Data JPA / Hibernate | `auth-svc` uses raw `JdbcTemplate`, fully supported under Spring Framework 7 / Boot 4. Track any ORM move as a separate follow-on. |
++| Copying dependencies from a sibling service | `auth-svc`'s token/serializer surface is its own; do not import `workforce-svc` JPA or `audit-svc` decisions beyond the shared Boot/Java/Jackson-pin targets stated above. |
++| Rotating to persistent JWT signing keys | The startup-generated key is intentional for the teaching codebase. Out of scope for a framework bump. |
++
++## 4. Security constraints
++
++- No phase may introduce or knowingly retain a known-vulnerable dependency.
++- The migration must **remove** the transitive Jackson 2 that `jjwt-jackson`
++  pulls under Boot 4 — verify its absence in `mvn dependency:tree` after Phase 2.
++- Re-pointed Jackson 3 pin must resolve `3.1.6` (Boot 4.1.0 natively resolves a
++  still-vulnerable `3.1.4`).
++- A dependency tree proves resolution, not vulnerability status — run the
++  repository-approved advisory/SCA gate when available, or record the source and
++  date of the manual assessment.
++
++## 5. Phased migration plan
++
++Follow `migration-playbook.md` for sequencing, evidence, and approval gates. This
++profile supplies the exact per-phase targets.
++
++### Phase 0 — Behavioral safety net (already complete)
++
++Context-load test, `TokenController` integration test asserting the `/token`
++bearer-token contract, and a JWT-validation test that reconstructs the RSA public
++key from the published JWKS and verifies the signature and claims — all on an
++isolated temporary database, green on Spring Boot 3.5.16 / Java 17. This is the
++baseline the later phases must keep satisfying.
++
++### Phase 1 — Java toolchain and runtime (17 → 21)
++
++Bump `<java.version>` to `21` and update committed Docker build/runtime images and
++any service-specific scripts/CI that still select JDK 17. Leave the Spring Boot
++parent and all dependency pins unchanged. Gate: `java -version`, `mvn test`,
++`mvn verify`, `mvn clean verify`, then `javap -verbose` on a clean application
++class to confirm major version `65`.
++
++### Phase 2 — Spring Boot 4.1.0 + jjwt/Gson serializer swap
++
++1. Bump the Spring Boot parent `3.5.16` → `4.1.0`.
++2. Re-point `<jackson-bom.version>` to `3.1.6`; hold `<log4j2.version>` at `2.25.5`.
++3. Bump `jjwt-api`, `jjwt-impl` to `0.12.7`; replace the `jjwt-jackson` `0.11.5`
++   runtime dependency with `jjwt-gson` `0.12.7`.
++4. Migrate `JwtIssuer` to the jjwt `0.12.x` API (see §3).
++5. Gate: `mvn dependency:tree` (confirm Spring Boot 4.1.0, Jackson `3.1.6`,
++   `jjwt-gson` + Gson `2.13.2`, **no Jackson 2**, no vulnerable transitives),
++   `mvn test`, `mvn clean verify`, then the approved dependency-security check.
++
++The Phase 0 tests are the tell here: if the API migration or serializer swap
++changes the token contract, the `/token` and JWKS tests fail against the exact
++phase that caused it.
++
++### Phase 3 — Stabilization
++
++Remove any temporary migration aids, resolve deprecations affecting supported
++operation, update `auth-svc` documentation to the final stack, and verify
++container startup. Rerun `mvn test`, `mvn clean verify`, `mvn dependency:tree`.
++
++### Final integration gate
++
++Confirm final Java/Boot/serializer/pin versions, then run `npm run test:e2e` from
++the repository root. Fix only failures caused by `auth-svc` or its exclusive
++wiring; report and stop if a fix would require another service or the frontend.
++
++## 6. Rollback boundary
++
++Each phase is an isolated, independently revertible change set: the Java target
++(Phase 1), and the Boot parent + jjwt/serializer + `JwtIssuer` edits (Phase 2).
++The smallest rollback that restores a passing state is reverting the current
++phase's change set and rerunning that phase's gate.
 diff --git a/docs/modernization/migration-playbook.md b/docs/modernization/migration-playbook.md
 new file mode 100644
-index 0000000..a2396ef
+index 0000000..7aea854
 --- /dev/null
 +++ b/docs/modernization/migration-playbook.md
-@@ -0,0 +1,30 @@
-+# Java modernization playbook
+@@ -0,0 +1,406 @@
++# Java Service Migration Playbook
 +
-+> A reusable recipe for bringing an AssetTrack Java service current — from Spring Boot 3.5 / Java 17 to Spring Boot 4.1 / Java 21. Distilled from modernizing `audit-svc` and `auth-svc`. Use it with the `Java migrator` agent.
++This playbook defines the default process for modernizing one AssetTrack Java
++service at a time. It supersedes service-specific migration research as the
++process authority: service plans still provide exact target versions,
++dependency decisions, and known risks, while this document governs sequencing,
++scope, evidence, and approval gates.
 +
-+## The loop
++The goal is not merely to make the application compile on newer versions. A
++successful migration preserves public behavior, keeps intentional course
++exercise targets intact, produces clean target-version bytecode, and leaves no
++known-vulnerable dependency in the resolved runtime graph.
 +
-+Assess → Plan → Protect → Migrate → Validate → Document. An agent changes the speed of each step, not the need for it.
++## 1. Operating principles
 +
-+## Recipe
++### One service, one phase, one approval
 +
-+1. **Assess.** Confirm the current stack (`pom.xml` parent + `java.version`), the dependency surface, and how the service touches JSON. Boot 4 makes **Jackson 3** (`tools.jackson`) the default and no longer manages Jackson 2, so any library that carries its own Jackson 2 (e.g. `jjwt-jackson`) needs attention. Use the LSP (`.github/lsp.json` → `jdtls`) for precise caller/symbol lookups rather than text search.
-+2. **Plan.** Target the current supported baseline (`spring-boot-starter-parent` `4.1.0`, `java.version` `21`) rather than a generic "4.x". Pin the BOM-managed libraries that ship a still-vulnerable patch to a CVE-clean one (`jackson-bom.version` → Jackson 3 `3.1.6`; `log4j2.version` → `2.25.5`). Keep the plan phased so each step is independently verifiable and revertible.
-+3. **Protect — build the safety net first.** Add `spring-boot-starter-test` (`test` scope) and characterization tests *before* touching the framework: a `@SpringBootTest` context-load test, endpoint contract tests, and (for `auth-svc`) a token round-trip. Point them at an **isolated temporary SQLite database** (never `/data/*.db`). Note the Boot 4 test-API relocation: `TestRestTemplate` / `LocalServerPort` moved, so prefer `@LocalServerPort` + `RestClient`. Confirm green on the *old* (3.5 / 17) stack first.
-+4. **Migrate in order.**
-+   - Phase 1 — toolchain: `java.version` `17` → `21`; bump the Dockerfile base images `temurin-17` → `temurin-21`.
-+   - Phase 2 — framework: `spring-boot-starter-parent` `3.5.16` → `4.1.0`; add the Jackson 3 / Log4j2 currency pins.
-+   - Phase 3 — reconcile dependencies. Jackson 3 serializes the controllers' `Map`/`List` responses with **no** source change. For `jjwt`, bump `0.11.5` → `0.12.7` (the fluent builder API: `.issuer()/.subject()/.signWith(key, Jwts.SIG.RS256)`) and swap the serializer `jjwt-jackson` → `jjwt-gson` so JWT (de)serialization stays off Jackson 2, which Boot 4 no longer manages.
-+5. **Validate after every phase.** `mvn verify` from the service directory; the same test count must stay green. Run the Playwright e2e suite as the final cross-system gate. Wire the service into `.github/hooks/scripts/test-router.sh` so edits trigger its tests.
-+6. **Document.** Update this playbook and the `Java migrator` agent with anything the upgrade taught you, so the next service is a repeat rather than a fresh start.
++- Select exactly one service.
++- Work on one migration phase per approved turn or change set.
++- Do not begin the next phase because the current phase passed.
++- Keep framework migration separate from optional refactoring, persistence
++  changes, performance tuning, and feature work.
++- Treat a cross-service or frontend change as a separate project unless the
++  approved migration plan explicitly requires it.
 +
-+## Lessons from the two services
++This sequencing makes failures attributable. If Java, Spring Boot, persistence,
++and application code all change together, a green or red build provides much
++less useful evidence.
 +
-+- **`audit-svc`** was the clean case: raw `JdbcTemplate`, no direct Jackson use, three dependencies. Two `pom.xml` edits (parent + `java.version`) plus the currency pins and the test starter, and a Dockerfile bump. Jackson 3 handled its `Map`/`List` JSON with zero source changes. Tests green on 4.1.0 / 21.
-+- **`auth-svc`** is where the second-service value showed up: it issues JWTs with `jjwt`. Boot 4 stops managing Jackson 2, so `jjwt-jackson` would drag in an old, vulnerable `jackson-databind`. The fix is two concrete moves — migrate `JwtIssuer` to the jjwt `0.12.x` fluent API, and swap `jjwt-jackson` → `jjwt-gson` to drop Jackson 2 entirely. A red test after the bump is the safety net doing its job. Tests green on 4.1.0 / 21.
++### Preserve behavior before improving it
 +
-+## Explicitly out of scope for a framework bump
++Modernization is not permission to redesign the service. Preserve:
 +
-+- Introducing Spring Data JPA / Hibernate (separate project, own branch).
-+- Fixing the intentional SQL-injection course-exercise code in the repositories (track separately).
-+- Hardening SQLite pool behavior beyond test isolation (evaluate under load, separately).
++- endpoint paths, status codes, and public JSON field names;
++- database ownership, schema, seed data, and initialization behavior;
++- environment-variable and runtime configuration contracts;
++- documented partial-failure or integration behavior;
++- intentional vulnerabilities and teaching gaps that are outside the selected
++  exercise.
++
++Record desirable but unrelated improvements as follow-on work.
++
++### Evidence beats configuration
++
++A version in `pom.xml` is an intention, not proof. Validate the active JDK,
++resolved dependency graph, compiled bytecode, test results, runtime behavior,
++and container wiring independently.
++
++## 2. Required migration profile
++
++Before editing, create or approve a service-specific profile containing:
++
++| Item | Required detail |
++|---|---|
++| Service boundary | Service directory and exclusive repository wiring |
++| Current stack | JDK, Java target, Spring Boot, Spring Framework, server, serializer, persistence |
++| Target stack | Exact approved versions, not version ranges |
++| Maintenance prerequisite | Latest supported maintenance release required before the major jump |
++| Dependency surface | Direct dependencies, BOM overrides, plugins, processors, test libraries |
++| Source exposure | `javax.*`, `jakarta.*`, Spring APIs, Jackson types, security/token libraries |
++| Configuration exposure | Renamed or removed properties and environment variables |
++| Runtime wiring | Dockerfile, Compose, scripts, CI, devcontainer, deployment manifests |
++| Behavioral contracts | HTTP, JSON, database, seed, initialization, and integration expectations |
++| Security constraints | Required pins, forbidden packages, and vulnerability scanning method |
++| Explicit exclusions | Refactors, persistence migrations, features, and exercise targets not being changed |
++| Phase gates | Commands and observable exit criteria for every phase |
++| Rollback boundary | Smallest change that restores the prior passing phase |
++
++Do not extrapolate exact dependency versions from another service. Services
++that share Spring Boot can still have different serializer, ORM, token,
++database, and test migration requirements.
++
++## 3. Preparation and inventory
++
++Read the complete service plan, service README, root architecture and exercise
++documentation, `pom.xml`, source, tests, configuration, Dockerfile, and any
++repository instructions that apply to Java files. Inspect the worktree before
++editing and preserve unrelated changes.
++
++Build an inventory using the following questions:
++
++1. Is the service already on the latest maintenance release from which the
++   target major supports migration?
++2. Which Java version runs Maven, and which Java release does Maven compile?
++3. Are build and runtime container images aligned?
++4. Does source code import APIs that changed namespace or package?
++5. Does application code reference Jackson, servlet, validation, persistence,
++   or test types directly?
++6. Which transitive dependencies are hidden behind starters or third-party
++   integration libraries?
++7. Which dependency versions are deliberately pinned for security?
++8. Which tests assert current JSON, initialization, and persistence behavior?
++9. Which generated IDE files exist, and are they committed or local-only?
++10. Which gaps are intentional course material and therefore out of scope?
++
++Before each phase, state:
++
++- the phase objective and current/target versions;
++- the files allowed to change;
++- the expected edits;
++- the validation commands and exit criteria.
++
++## 4. Phase 0 - Behavioral safety net
++
++**Objective:** make regressions observable before changing the runtime or
++framework.
++
++Keep the current Java target and Spring Boot version unchanged. Add only the
++test support needed to cover existing behavior.
++
++### Minimum coverage
++
++- application context starts;
++- health and representative read/write endpoints preserve status and JSON;
++- repository insert, query, ordering, and limit behavior;
++- schema initialization is repeatable and seed data is not duplicated;
++- environment-backed configuration is overridden safely in tests;
++- tests use an isolated temporary database rather than service data;
++- known intentional defects remain documented and are not silently fixed.
++
++For SQLite integration tests, prefer a temporary file when multiple
++connections or contexts must observe the same database. A connection-local
++`:memory:` database can disappear or produce different state when the pool
++opens another connection.
++
++### Gate
++
++Run both the ordinary test command and the service plan's full lifecycle gate:
++
++```bash
++mvn test
++mvn verify
++```
++
++Record tests, failures, errors, and skipped counts. Do not proceed with a
++failing baseline or unexplained skipped coverage.
++
++## 5. Phase 1 - Java toolchain and runtime alignment
++
++**Objective:** move the service to the target Java release while keeping the
++existing Spring Boot line fixed.
++
++### Changes
++
++- update the Maven Java release property;
++- update committed Docker build and runtime images;
++- update service-specific scripts, CI, or deployment wiring that selects the
++  old JDK;
++- update directly affected service documentation;
++- leave the Spring Boot parent and dependency pins unchanged;
++- do not commit language-server-generated `.classpath`, `.project`, or
++  `.settings` files unless the repository intentionally tracks them.
++
++Confirm the current Spring Boot maintenance line supports the target JDK before
++making this an isolated phase.
++
++### Gate
++
++Run the required commands on the target JDK:
++
++```bash
++java -version
++mvn test
++mvn verify
++mvn clean verify
++```
++
++The clean build is mandatory after changing compiler properties. Maven's
++incremental compiler can leave unchanged classes in `target/classes` at the old
++bytecode level while `mvn test` and `mvn verify` still pass.
++
++Inspect at least one cleanly compiled application class:
++
++```bash
++javap -verbose target/classes/path/to/Application.class
++```
++
++Expected class-file major versions include:
++
++| Java | Major version |
++|---:|---:|
++| 17 | 61 |
++| 21 | 65 |
++
++Do not use `mvn help:evaluate -Dexpression=java.version` as the sole compiler
++check. Maven expression evaluation can expose the running JVM's
++`java.version`, which does not prove the project's configured release or the
++bytecode already present in `target`.
++
++### Exit criteria
++
++- active Maven JVM is the target JDK;
++- clean application bytecode has the target major version;
++- Spring Boot remains on the pre-migration maintenance release;
++- baseline test count and behavior remain stable;
++- committed runtime wiring selects the target JDK.
++
++## 6. Phase 2 - Spring Boot and dependency migration
++
++**Objective:** move the framework and its managed dependency graph while the
++Java toolchain and behavioral baseline remain fixed.
++
++### Research before editing
++
++Review the official migration guide and release notes for:
++
++- minimum Java and Maven requirements;
++- removed modules, starters, and auto-configurations;
++- package or namespace changes;
++- configuration-property changes;
++- test-support relocations;
++- embedded server changes;
++- serializer and JSON behavior changes;
++- persistence and transaction changes;
++- observability and actuator changes.
++
++Move to the latest required maintenance release of the current Spring Boot line
++before making the major jump.
++
++### Dependency rules
++
++- let the Spring Boot BOM manage versions unless there is a documented reason
++  to override one;
++- preserve or re-point security pins instead of deleting them reflexively;
++- inspect third-party integration libraries for transitive dependencies that
++  the new Boot BOM no longer manages;
++- do not copy ORM, validation, security, or serializer dependencies from a
++  sibling service without a service-specific requirement;
++- do not introduce a known-vulnerable package at any intermediate phase.
++
++For a Spring Boot 3 to 4 migration, specifically inspect the move to Jackson 3.
++Services returning plain records, maps, or DTOs may need no source changes, but
++their JSON contracts still require tests. Services importing Jackson types or
++using serializer-specific third-party libraries require a dedicated migration
++decision.
++
++### Temporary migration aids
++
++Tools such as `spring-boot-properties-migrator` may be used only when the plan
++calls for them. Mark them as temporary and remove them before stabilization.
++Do not ship a diagnostic migration dependency by accident.
++
++### Gate
++
++```bash
++mvn dependency:tree
++mvn test
++mvn clean verify
++```
++
++Use the dependency tree to confirm:
++
++- target Spring Boot and Spring Framework versions;
++- target embedded server and serializer lines;
++- every required security pin;
++- absence of an unexpected legacy serializer or duplicate major line;
++- absence of forbidden or known-vulnerable packages.
++
++A dependency tree is version evidence, not a vulnerability scanner by itself.
++Use the repository-approved advisory or software-composition analysis gate when
++available, and document the source and date of any manual vulnerability
++assessment.
++
++### Exit criteria
++
++- the target Spring Boot parent resolves successfully;
++- the full clean test suite passes with the baseline contract count;
++- required dependency versions are present;
++- removed or vulnerable transitive dependencies are absent;
++- no unrelated application redesign was introduced.
++
++## 7. Phase 3 - Stabilization
++
++**Objective:** remove migration scaffolding and make only the changes required
++to operate the migrated service reliably.
++
++### Required work
++
++- remove temporary migration aids;
++- resolve deprecations or warnings that affect supported operation;
++- update service documentation to the final stack;
++- verify configuration and container startup;
++- rerun dependency and clean Maven gates.
++
++### Separate approval required
++
++Do not silently include:
++
++- Java language refactoring merely to demonstrate the new release;
++- migration from JDBC to JPA or between persistence technologies;
++- virtual-thread enablement;
++- connection-pool or transaction redesign;
++- schema or seed changes;
++- performance tuning;
++- CI expansion beyond the approved service;
++- fixes for intentional vulnerabilities or unrelated defects.
++
++These may be valuable follow-ons, but they change risk and rollback boundaries.
++
++For SQLite, pay special attention to connection-scoped operations such as
++`last_insert_rowid()`. A framework upgrade may expose a pre-existing
++concurrency issue without causing it. Validate before changing pool size or
++transaction handling, and document throughput tradeoffs.
++
++### Gate
++
++```bash
++mvn test
++mvn clean verify
++mvn dependency:tree
++```
++
++Run focused endpoint or application startup checks required by the service
++plan.
++
++## 8. Final integration gate
++
++After all service phases are approved and green:
++
++1. Confirm final Java, Spring Boot, serializer, and security-pin versions.
++2. Start the service using its supported runtime path.
++3. Run the repository end-to-end suite:
++
++   ```bash
++   npm run test:e2e
++   ```
++
++4. Do not weaken or rewrite tests to manufacture a pass.
++5. Fix only failures caused by the selected service or its exclusive wiring.
++6. If a fix requires another service or the frontend, report the boundary and
++   stop.
++7. After any final-gate fix, rerun the service's clean Maven gate before
++   rerunning end-to-end tests.
++
++## 9. Documentation and repository hygiene
++
++- Update the service README at the phase where its documented state changes.
++- Update root architecture or exercise wording only when the completed
++  migration makes existing statements false.
++- Do not edit generated learner branches or promotion refs directly.
++- Do not commit Maven `target` output, local databases, temporary logs, or
++  language-server metadata.
++- Review the complete diff and worktree status before reporting a phase
++  complete.
++- Preserve user changes already present in touched files.
++
++## 10. Phase report template
++
++```markdown
++## Phase <N> status
++
++**Target:** Java <version> / Spring Boot <version>
++
++| Check | Command | Result |
++|---|---|---|
++| Unit/integration tests | `mvn test` | PASS - <tests, failures, errors, skipped> |
++| Clean lifecycle | `mvn clean verify` | PASS |
++| Bytecode | `javap -verbose ...` | major version <value> |
++| Dependencies | `mvn dependency:tree` | <required versions or N/A> |
++
++**Files changed:** <scoped list>
++
++**Runtime/dependency evidence:** <JDK, framework, serializer, server, pins>
++
++**Remaining risks or blockers:** <specific items or none>
++
++Awaiting approval to begin Phase <N+1>.
++```
++
++Do not report `PASS` unless the named command ran successfully against the
++current worktree. Do not report the overall migration complete until both the
++final service gate and repository end-to-end gate pass on the target stack.
++
++## 11. Final status template
++
++```markdown
++## Testing status
++
++| Layer | Target stack | Command | Result |
++|---|---|---|---|
++| Service | Java <version> / Spring Boot <version> | `mvn test` and `mvn clean verify` | PASS - <tests, failures, errors, skipped> |
++| Dependencies | Target managed graph | `mvn dependency:tree` and approved security check | PASS - <key versions> |
++| End to end | Migrated service integrated with AssetTrack | `npm run test:e2e` | PASS - <passed, failed, skipped> |
++```
++
++Include:
++
++- final Java bytecode major version;
++- Spring Boot, Spring Framework, embedded server, and serializer versions;
++- retained security pins and why they remain;
++- optional follow-on work that was deliberately excluded;
++- any warning that remains non-blocking and its future remediation point.
++
++## 12. Common failure patterns
++
++| Failure pattern | Why it is misleading or risky | Corrective action |
++|---|---|---|
++| `pom.xml` says Java 21, so Java 21 is proven | Incremental output may still contain Java 17 classes | Run `mvn clean verify` and inspect class major version |
++| Maven runs on Java 21, so output targets Java 21 | Runtime JDK and compiler release are independent | Inspect Maven configuration and clean bytecode |
++| Tests pass, so JSON is unchanged | Tests may not assert field names, ordering assumptions, or defaults | Add contract assertions before migration |
++| Boot BOM manages dependencies, so the tree is safe | Third-party libraries and native Boot versions can still be vulnerable | Inspect the resolved tree and run the approved security gate |
++| A sibling service uses a dependency, so this service should too | Services have different persistence and integration surfaces | Add only dependencies justified by the selected service |
++| IDE metadata still says Java 17, so the build is wrong | Generated language-server files may be stale and untracked | Trust clean Maven evidence; regenerate local metadata separately |
++| Framework migration is a good time to refactor | Combined changes obscure regressions and complicate rollback | Defer refactoring to a separately approved phase |
++| A pre-existing defect appears during migration, so it must be fixed | It may be an intentional exercise or unrelated risk | Check documentation and scope before editing |
++
+diff --git a/exercises.md b/exercises.md
+index 7b7501e..8a71994 100644
+--- a/exercises.md
++++ b/exercises.md
+@@ -98,7 +98,9 @@ Verify nothing that imports the module breaks.
+ 
+ **Goal:** Bring `services/audit-svc` current with the latest Spring Boot.
+ 
+-`audit-svc` is secure but a generation behind: it runs on Spring Boot 3.5.16 and Java 17. Use Copilot to bring it current:
++This exercise is represented by the saved migration plan and completed
++modernization assets in `docs/modernization/`. To repeat it from the original
++baseline, use the generated course branch for Module 06.
+ 
+ - Bump `pom.xml` to Spring Boot 4.1 (Spring Framework 7) and Java 21.
+ - Work through the Boot 3 → 4 changes, including the move to Jackson 3, and adjust code and configuration as needed.
+@@ -109,7 +111,9 @@ Verify nothing that imports the module breaks.
+ 
+ **Goal:** Apply what you learned in exercise 9 to `services/auth-svc`, with a dependency-security twist.
+ 
+-Same Spring Boot 3.5 → 4.1 and Java 17 → 21 jump as #9, but `auth-svc` adds a supply-chain angle. It depends on JJWT (`jjwt-api` / `jjwt-impl` / `jjwt-jackson` 0.11.x), and `jjwt-jackson` drags in a vulnerable transitive Jackson 2 — and the org rule is that no branch may ship a known-vulnerable package. Use Copilot to:
++This completed migration applies the same Spring Boot 3.5 → 4.1 and Java 17 →
++21 jump as #9, with the additional JJWT serializer migration. To repeat it from
++the original baseline, use the generated course branch for Module 06.
+ 
+ - Bump `pom.xml` to Spring Boot 4.1 and Java 21.
+ - Upgrade JJWT to 0.12.x and swap `jjwt-jackson` for `jjwt-gson`, so the token layer stops pulling in a vulnerable Jackson 2.
 diff --git a/services/audit-svc/Dockerfile b/services/audit-svc/Dockerfile
 index 04c9777..bd61f19 100644
 --- a/services/audit-svc/Dockerfile
@@ -221,8 +2255,43 @@ index 04c9777..bd61f19 100644
  WORKDIR /app
  COPY --from=build /src/target/*.jar app.jar
  EXPOSE 8080
+diff --git a/services/audit-svc/README.md b/services/audit-svc/README.md
+index 1eb8cb9..5d0b19d 100644
+--- a/services/audit-svc/README.md
++++ b/services/audit-svc/README.md
+@@ -1,7 +1,8 @@
+-# audit-svc (Java 17 / Spring Boot 3.5 — a generation behind)
++# audit-svc (Java 21 / Spring Boot 4.1)
+ 
+ > [!IMPORTANT]
+-> This service is **a generation behind** the team's current cadence — Spring Boot 3.5, Java 17, raw JDBC, no tests. It is CVE-clean but due for a currency upgrade, so it exists as a realistic modernization target for the course.
++> This service has moved to the team's current Java 21 and Spring Boot 4.1
++> stack while retaining its existing raw JDBC and SQLite design.
+ 
+ Append-only audit log. Other services POST events; humans GET them.
+ 
+@@ -31,9 +32,17 @@ Append-only audit log. Other services POST events; humans GET them.
+ mvn spring-boot:run
+ ```
+ 
++## Test
++
++```bash
++mvn test
++```
++
++The integration tests use an isolated temporary SQLite database and do not read
++or write `AUDIT_DB_PATH`.
++
+ ## Known smells (course material)
+ 
+ - **SQL injection** in `AuditRepository.search` (string concatenation across three `LIKE` clauses). Course exercise target.
+-- **No tests** in this module.
+-- **Spring Boot 3.5 / Java 17** — a generation behind the team's Spring Boot 4 / Java 21 target; the currency-upgrade exercise brings it current.
++- The current test suite is a behavior-preserving safety net for modernization; it does not fix intentional exercise targets.
+ - Nothing currently POSTs to this service from `workforce-svc` — wiring that up is also an exercise.
 diff --git a/services/audit-svc/pom.xml b/services/audit-svc/pom.xml
-index d42ae42..3db1acb 100644
+index d42ae42..09726c7 100644
 --- a/services/audit-svc/pom.xml
 +++ b/services/audit-svc/pom.xml
 @@ -5,7 +5,7 @@
@@ -239,14 +2308,14 @@ index d42ae42..3db1acb 100644
      <version>0.1.0</version>
      <name>audit-svc</name>
 -    <description>Append-only audit log (a generation behind: Spring Boot 3.5 / Java 17, due for a currency upgrade)</description>
-+    <description>Append-only audit log (modernized: Spring Boot 4.1 / Java 21)</description>
++    <description>Append-only audit log (Spring Boot 4.1 / Java 21)</description>
  
      <properties>
 -        <java.version>17</java.version>
 -        <!-- Currency pins: hold the BOM-managed Jackson 2.x and Log4j2 API on CVE-clean patches -->
 -        <jackson-bom.version>2.22.2</jackson-bom.version>
 +        <java.version>21</java.version>
-+        <!-- Currency pins: hold the BOM-managed Jackson 3 and Log4j2 API on CVE-clean patches -->
++        <!-- Currency pins: hold the BOM-managed Jackson 3.x and Log4j2 API on CVE-clean patches -->
 +        <jackson-bom.version>3.1.6</jackson-bom.version>
          <log4j2.version>2.25.5</log4j2.version>
      </properties>
@@ -257,7 +2326,7 @@ index d42ae42..3db1acb 100644
          </dependency>
 +        <dependency>
 +            <groupId>org.springframework.boot</groupId>
-+            <artifactId>spring-boot-starter-test</artifactId>
++            <artifactId>spring-boot-starter-webmvc-test</artifactId>
 +            <scope>test</scope>
 +        </dependency>
      </dependencies>
@@ -265,7 +2334,7 @@ index d42ae42..3db1acb 100644
      <build>
 diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditApplicationTests.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditApplicationTests.java
 new file mode 100644
-index 0000000..71f3029
+index 0000000..6b95485
 --- /dev/null
 +++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditApplicationTests.java
 @@ -0,0 +1,12 @@
@@ -274,93 +2343,227 @@ index 0000000..71f3029
 +import org.junit.jupiter.api.Test;
 +import org.springframework.boot.test.context.SpringBootTest;
 +
-+/** Verifies the Spring application context loads without errors. */
 +@SpringBootTest
-+class AuditApplicationTests extends AuditTestSupport {
++class AuditApplicationTests extends AuditTestDatabase {
++
 +    @Test
 +    void contextLoads() {
 +    }
 +}
-diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerTest.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerTest.java
+diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerIntegrationTests.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerIntegrationTests.java
 new file mode 100644
-index 0000000..4e46c51
+index 0000000..25ead2c
 --- /dev/null
-+++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerTest.java
-@@ -0,0 +1,45 @@
++++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditControllerIntegrationTests.java
+@@ -0,0 +1,94 @@
 +package com.contoso.audit;
 +
 +import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
 +import org.springframework.boot.test.context.SpringBootTest;
-+import org.springframework.boot.test.web.server.LocalServerPort;
-+import org.springframework.http.HttpStatus;
-+import org.springframework.http.ResponseEntity;
-+import org.springframework.web.client.RestClient;
++import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
++import org.springframework.http.MediaType;
++import org.springframework.test.annotation.Rollback;
++import org.springframework.test.web.servlet.MockMvc;
++import org.springframework.transaction.annotation.Transactional;
++
++import static org.hamcrest.Matchers.greaterThan;
++import static org.hamcrest.Matchers.hasSize;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++@SpringBootTest
++@AutoConfigureMockMvc
++@Transactional
++@Rollback
++class AuditControllerIntegrationTests extends AuditTestDatabase {
++
++    @Autowired
++    private MockMvc mockMvc;
++
++    @Test
++    void healthReturnsCurrentServiceStatusJson() throws Exception {
++        mockMvc.perform(get("/health"))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andExpect(content().json("""
++                        {
++                          "status": "ok",
++                          "service": "audit-svc"
++                        }
++                        """, true));
++    }
++
++    @Test
++    void eventsReturnsMostRecentSeededRowsInCurrentJsonShape() throws Exception {
++        mockMvc.perform(get("/events").queryParam("limit", "2"))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andExpect(jsonPath("$", hasSize(2)))
++                .andExpect(jsonPath("$[0].id").value(12))
++                .andExpect(jsonPath("$[0].event_time").value("2025-03-04 17:48:50"))
++                .andExpect(jsonPath("$[0].actor").value("helpdesk"))
++                .andExpect(jsonPath("$[0].action").value("return"))
++                .andExpect(jsonPath("$[0].entity_type").value("asset"))
++                .andExpect(jsonPath("$[0].entity_id").value("CON-KBD-002"))
++                .andExpect(jsonPath("$[0].details").value("Returned by hiroshi.tanaka"))
++                .andExpect(jsonPath("$[1].id").value(11))
++                .andExpect(jsonPath("$[1].action").value("permissions"));
++    }
++
++    @Test
++    void eventsQueryReturnsCurrentSearchResults() throws Exception {
++        mockMvc.perform(get("/events").queryParam("query", "assign"))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andExpect(jsonPath("$", hasSize(3)))
++                .andExpect(jsonPath("$[0].id").value(10))
++                .andExpect(jsonPath("$[0].action").value("assign"))
++                .andExpect(jsonPath("$[1].id").value(3))
++                .andExpect(jsonPath("$[2].id").value(2));
++    }
++
++    @Test
++    void createReturnsNumericIdAndPersistsCurrentDefaults() throws Exception {
++        mockMvc.perform(post("/events")
++                        .contentType(MediaType.APPLICATION_JSON)
++                        .content("""
++                                {
++                                  "actor": "integration-test",
++                                  "details": "Captured current default values"
++                                }
++                                """))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andExpect(jsonPath("$.id", greaterThan(12)));
++
++        mockMvc.perform(get("/events").queryParam("query", "Captured current default values"))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$", hasSize(1)))
++                .andExpect(jsonPath("$[0].actor").value("integration-test"))
++                .andExpect(jsonPath("$[0].action").value("unknown"))
++                .andExpect(jsonPath("$[0].entity_type").value("unknown"))
++                .andExpect(jsonPath("$[0].entity_id").value(""))
++                .andExpect(jsonPath("$[0].details").value("Captured current default values"));
++    }
++}
+diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditRepositoryIntegrationTests.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditRepositoryIntegrationTests.java
+new file mode 100644
+index 0000000..079a031
+--- /dev/null
++++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditRepositoryIntegrationTests.java
+@@ -0,0 +1,75 @@
++package com.contoso.audit;
++
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.test.annotation.Rollback;
++import org.springframework.transaction.annotation.Transactional;
 +
 +import java.util.List;
 +import java.util.Map;
 +
 +import static org.assertj.core.api.Assertions.assertThat;
 +
-+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-+class AuditControllerTest extends AuditTestSupport {
++@SpringBootTest
++@Transactional
++@Rollback
++class AuditRepositoryIntegrationTests extends AuditTestDatabase {
 +
-+    @LocalServerPort
-+    int port;
++    @Autowired
++    private AuditRepository repository;
 +
-+    private RestClient rest() {
-+        return RestClient.create("http://localhost:" + port);
++    @Test
++    void recentReturnsSeededRowsInDescendingIdOrder() {
++        List<Map<String, Object>> events = repository.recent(2);
++
++        assertThat(events).hasSize(2);
++        assertThat(events.get(0))
++                .containsEntry("id", 12)
++                .containsEntry("event_time", "2025-03-04 17:48:50")
++                .containsEntry("actor", "helpdesk")
++                .containsEntry("action", "return")
++                .containsEntry("entity_type", "asset")
++                .containsEntry("entity_id", "CON-KBD-002")
++                .containsEntry("details", "Returned by hiroshi.tanaka");
++        assertThat(events.get(1))
++                .containsEntry("id", 11)
++                .containsEntry("action", "permissions");
 +    }
 +
 +    @Test
-+    void health_returnsOk() {
-+        ResponseEntity<Map> res = rest().get().uri("/health").retrieve().toEntity(Map.class);
-+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-+        assertThat(res.getBody()).containsEntry("status", "ok").containsEntry("service", "audit-svc");
++    void searchMatchesActionEntityTypeAndDetails() {
++        assertThat(repository.search("assign"))
++                .extracting(event -> event.get("id"))
++                .containsExactly(10, 3, 2);
++        assertThat(repository.search("user"))
++                .extracting(event -> event.get("id"))
++                .containsExactly(11, 8);
++        assertThat(repository.search("monitor"))
++                .singleElement()
++                .satisfies(event -> assertThat(event)
++                        .containsEntry("id", 3)
++                        .containsEntry("details", "Dual-monitor request"));
 +    }
 +
 +    @Test
-+    void postThenGetEvents_roundTrips() {
-+        Map<String, String> body = Map.of(
-+                "actor", "tester", "action", "create", "entityType", "asset",
-+                "entityId", "CON-TST-001", "details", "created in test");
-+        ResponseEntity<Map> post = rest().post().uri("/events").body(body).retrieve().toEntity(Map.class);
-+        assertThat(post.getStatusCode()).isEqualTo(HttpStatus.OK);
-+        assertThat(((Number) post.getBody().get("id")).longValue()).isPositive();
++    void insertPersistsTheCurrentColumnValues() {
++        long id = repository.insert(
++                "integration-test",
++                "assignment.create",
++                "assignment",
++                "42",
++                "Assigned test asset");
 +
-+        ResponseEntity<List> list = rest().get().uri("/events").retrieve().toEntity(List.class);
-+        assertThat(list.getStatusCode()).isEqualTo(HttpStatus.OK);
-+        assertThat(list.getBody()).isNotEmpty();
++        assertThat(id).isGreaterThan(12);
++        assertThat(repository.search("Assigned test asset"))
++                .singleElement()
++                .satisfies(event -> assertThat(event)
++                        .containsEntry("id", Math.toIntExact(id))
++                        .containsEntry("actor", "integration-test")
++                        .containsEntry("action", "assignment.create")
++                        .containsEntry("entity_type", "assignment")
++                        .containsEntry("entity_id", "42")
++                        .containsEntry("details", "Assigned test asset"));
 +    }
 +}
-diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditTestSupport.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditTestSupport.java
+diff --git a/services/audit-svc/src/test/java/com/contoso/audit/AuditTestDatabase.java b/services/audit-svc/src/test/java/com/contoso/audit/AuditTestDatabase.java
 new file mode 100644
-index 0000000..c82d730
+index 0000000..7907285
 --- /dev/null
-+++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditTestSupport.java
-@@ -0,0 +1,25 @@
++++ b/services/audit-svc/src/test/java/com/contoso/audit/AuditTestDatabase.java
+@@ -0,0 +1,29 @@
 +package com.contoso.audit;
 +
 +import org.springframework.test.context.DynamicPropertyRegistry;
 +import org.springframework.test.context.DynamicPropertySource;
 +
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.file.Files;
 +import java.nio.file.Path;
 +
-+/** Points the service at an isolated temp SQLite DB so tests never touch /data/audit.db. */
-+abstract class AuditTestSupport {
-+    static final Path DB = tempDb();
++abstract class AuditTestDatabase {
 +
-+    private static Path tempDb() {
-+        try {
-+            Path dir = java.nio.file.Files.createTempDirectory("audit-test");
-+            return dir.resolve("audit.db");
-+        } catch (Exception e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
++    private static final Path DATABASE_PATH = createDatabase();
 +
 +    @DynamicPropertySource
-+    static void props(DynamicPropertyRegistry registry) {
-+        registry.add("AUDIT_DB_PATH", DB::toString);
++    static void configureDatabase(DynamicPropertyRegistry registry) {
++        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + DATABASE_PATH);
++    }
++
++    private static Path createDatabase() {
++        try {
++            Path database = Files.createTempFile("audit-svc-test-", ".db");
++            database.toFile().deleteOnExit();
++            return database;
++        } catch (IOException exception) {
++            throw new UncheckedIOException("Failed to create temporary audit test database", exception);
++        }
 +    }
 +}
 diff --git a/services/auth-svc/Dockerfile b/services/auth-svc/Dockerfile
@@ -381,8 +2584,41 @@ index 156b758..de5c9ec 100644
  WORKDIR /app
  COPY --from=build /src/target/*.jar app.jar
  EXPOSE 8080
+diff --git a/services/auth-svc/README.md b/services/auth-svc/README.md
+index 64422da..ce0009c 100644
+--- a/services/auth-svc/README.md
++++ b/services/auth-svc/README.md
+@@ -1,7 +1,9 @@
+-# auth-svc (Java 17 / Spring Boot 3.5 — a generation behind)
++# auth-svc (Java 21 / Spring Boot 4.1)
+ 
+ > [!IMPORTANT]
+-> This service is **a generation behind** the team's current cadence — Spring Boot 3.5, Java 17, raw JDBC, plain-text passwords. It is CVE-clean but due for a currency upgrade, and gives course learners a realistic modernization/security target.
++> This service has moved to the team's current Java 21 and Spring Boot 4.1
++> stack. JJWT uses its Gson serializer so the token path does not retain
++> Jackson 2 alongside Spring Boot 4's Jackson 3 defaults.
+ 
+ Issues RS256 JWTs and exposes a JWKs document so other services can validate tokens.
+ 
+@@ -28,9 +30,14 @@ Issues RS256 JWTs and exposes a JWKs document so other services can validate tok
+ mvn spring-boot:run
+ ```
+ 
++## Test
++
++```bash
++mvn test
++```
++
+ ## Known smells (course material)
+ 
+ - **SQL injection** in `UserRepository.findByUsername` (string concatenation). Course exercise target.
+ - **Plain-text passwords** in the seeded database.
+-- **No tests** in this module.
+-- **Spring Boot 3.5 / Java 17** — a generation behind the team's Spring Boot 4 / Java 21 target; the currency-upgrade exercise (including the jjwt/serializer migration) brings it current.
++- The signing key is generated at startup, so restarting the service invalidates existing tokens.
 diff --git a/services/auth-svc/pom.xml b/services/auth-svc/pom.xml
-index ded8899..578ff83 100644
+index ded8899..9b1a451 100644
 --- a/services/auth-svc/pom.xml
 +++ b/services/auth-svc/pom.xml
 @@ -5,7 +5,7 @@
@@ -399,14 +2635,14 @@ index ded8899..578ff83 100644
      <version>0.1.0</version>
      <name>auth-svc</name>
 -    <description>JWT issuer + user lookup (a generation behind: Spring Boot 3.5 / Java 17, due for a currency upgrade)</description>
-+    <description>JWT issuer + user lookup (modernized: Spring Boot 4.1 / Java 21)</description>
++    <description>JWT issuer + user lookup (Spring Boot 4.1 / Java 21)</description>
  
      <properties>
 -        <java.version>17</java.version>
 -        <!-- Currency pins: hold the BOM-managed Jackson 2.x and Log4j2 API on CVE-clean patches -->
 -        <jackson-bom.version>2.22.2</jackson-bom.version>
 +        <java.version>21</java.version>
-+        <!-- Currency pins: hold the BOM-managed Jackson 3 and Log4j2 API on CVE-clean patches -->
++        <!-- Currency pins: hold the BOM-managed Jackson 3.x and Log4j2 API on CVE-clean patches -->
 +        <jackson-bom.version>3.1.6</jackson-bom.version>
          <log4j2.version>2.25.5</log4j2.version>
 +        <jjwt.version>0.12.7</jjwt.version>
@@ -427,7 +2663,7 @@ index ded8899..578ff83 100644
 +            <version>${jjwt.version}</version>
              <scope>runtime</scope>
          </dependency>
-+        <!-- Gson serializer: keeps JWT (de)serialization off Jackson 2, which Spring Boot 4 no longer manages -->
++        <!-- Gson keeps JWT serialization off Jackson 2, which Spring Boot 4 no longer manages. -->
          <dependency>
              <groupId>io.jsonwebtoken</groupId>
 -            <artifactId>jjwt-jackson</artifactId>
@@ -438,7 +2674,7 @@ index ded8899..578ff83 100644
          </dependency>
 +        <dependency>
 +            <groupId>org.springframework.boot</groupId>
-+            <artifactId>spring-boot-starter-test</artifactId>
++            <artifactId>spring-boot-starter-webmvc-test</artifactId>
 +            <scope>test</scope>
 +        </dependency>
      </dependencies>
@@ -483,7 +2719,7 @@ index 66b1296..096fce7 100644
  
 diff --git a/services/auth-svc/src/test/java/com/contoso/auth/AuthApplicationTests.java b/services/auth-svc/src/test/java/com/contoso/auth/AuthApplicationTests.java
 new file mode 100644
-index 0000000..eccbc0a
+index 0000000..8e6327e
 --- /dev/null
 +++ b/services/auth-svc/src/test/java/com/contoso/auth/AuthApplicationTests.java
 @@ -0,0 +1,12 @@
@@ -492,104 +2728,164 @@ index 0000000..eccbc0a
 +import org.junit.jupiter.api.Test;
 +import org.springframework.boot.test.context.SpringBootTest;
 +
-+/** Verifies the context loads (including @PostConstruct RSA key init). */
 +@SpringBootTest
-+class AuthApplicationTests extends AuthTestSupport {
++class AuthApplicationTests extends AuthTestDatabase {
++
 +    @Test
 +    void contextLoads() {
 +    }
 +}
-diff --git a/services/auth-svc/src/test/java/com/contoso/auth/AuthTestSupport.java b/services/auth-svc/src/test/java/com/contoso/auth/AuthTestSupport.java
+diff --git a/services/auth-svc/src/test/java/com/contoso/auth/AuthTestDatabase.java b/services/auth-svc/src/test/java/com/contoso/auth/AuthTestDatabase.java
 new file mode 100644
-index 0000000..de4ec90
+index 0000000..dd6b357
 --- /dev/null
-+++ b/services/auth-svc/src/test/java/com/contoso/auth/AuthTestSupport.java
-@@ -0,0 +1,25 @@
++++ b/services/auth-svc/src/test/java/com/contoso/auth/AuthTestDatabase.java
+@@ -0,0 +1,29 @@
 +package com.contoso.auth;
 +
 +import org.springframework.test.context.DynamicPropertyRegistry;
 +import org.springframework.test.context.DynamicPropertySource;
 +
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.file.Files;
 +import java.nio.file.Path;
 +
-+/** Points the service at an isolated temp SQLite DB so tests never touch /data/auth.db. */
-+abstract class AuthTestSupport {
-+    static final Path DB = tempDb();
++abstract class AuthTestDatabase {
 +
-+    private static Path tempDb() {
-+        try {
-+            Path dir = java.nio.file.Files.createTempDirectory("auth-test");
-+            return dir.resolve("auth.db");
-+        } catch (Exception e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
++    private static final Path DATABASE_PATH = createDatabase();
 +
 +    @DynamicPropertySource
-+    static void props(DynamicPropertyRegistry registry) {
-+        registry.add("AUTH_DB_PATH", DB::toString);
++    static void configureDatabase(DynamicPropertyRegistry registry) {
++        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + DATABASE_PATH);
++    }
++
++    private static Path createDatabase() {
++        try {
++            Path database = Files.createTempFile("auth-svc-test-", ".db");
++            database.toFile().deleteOnExit();
++            return database;
++        } catch (IOException exception) {
++            throw new UncheckedIOException("Failed to create temporary auth test database", exception);
++        }
 +    }
 +}
-diff --git a/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerTest.java b/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerTest.java
+diff --git a/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerIntegrationTests.java b/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerIntegrationTests.java
 new file mode 100644
-index 0000000..a2933c1
+index 0000000..a287c54
 --- /dev/null
-+++ b/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerTest.java
-@@ -0,0 +1,57 @@
++++ b/services/auth-svc/src/test/java/com/contoso/auth/TokenControllerIntegrationTests.java
+@@ -0,0 +1,110 @@
 +package com.contoso.auth;
 +
++import io.jsonwebtoken.Claims;
++import io.jsonwebtoken.Jws;
++import io.jsonwebtoken.Jwts;
 +import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
 +import org.springframework.boot.test.context.SpringBootTest;
-+import org.springframework.boot.test.web.server.LocalServerPort;
-+import org.springframework.http.HttpStatus;
-+import org.springframework.http.HttpStatusCode;
-+import org.springframework.http.ResponseEntity;
-+import org.springframework.web.client.RestClient;
++import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
++import org.springframework.http.MediaType;
++import org.springframework.test.web.servlet.MockMvc;
++import org.springframework.test.web.servlet.MvcResult;
++import tools.jackson.databind.JsonNode;
++import tools.jackson.databind.ObjectMapper;
 +
++import java.math.BigInteger;
++import java.security.KeyFactory;
++import java.security.interfaces.RSAPublicKey;
++import java.security.spec.RSAPublicKeySpec;
 +import java.util.Base64;
-+import java.util.Map;
 +
-+import static org.assertj.core.api.Assertions.assertThat;
++import static org.hamcrest.Matchers.not;
++import static org.hamcrest.Matchers.blankOrNullString;
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 +
-+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-+class TokenControllerTest extends AuthTestSupport {
++@SpringBootTest
++@AutoConfigureMockMvc
++class TokenControllerIntegrationTests extends AuthTestDatabase {
 +
-+    @LocalServerPort
-+    int port;
++    @Autowired
++    private MockMvc mockMvc;
 +
-+    private RestClient rest() {
-+        return RestClient.create("http://localhost:" + port);
++    @Autowired
++    private ObjectMapper objectMapper;
++
++    @Test
++    void tokenIssuesBearerTokenForSeededUser() throws Exception {
++        mockMvc.perform(post("/token")
++                        .contentType(MediaType.APPLICATION_JSON)
++                        .content("""
++                                {
++                                  "username": "admin",
++                                  "password": "password"
++                                }
++                                """))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andExpect(jsonPath("$.access_token", not(blankOrNullString())))
++                .andExpect(jsonPath("$.token_type").value("Bearer"))
++                .andExpect(jsonPath("$.user.username").value("admin"))
++                .andExpect(jsonPath("$.user.display_name").value("Admin User"))
++                .andExpect(jsonPath("$.user.role").value("admin"));
 +    }
 +
 +    @Test
-+    void token_issuesJwt_viaGsonSerializer() {
-+        ResponseEntity<Map> res = rest().post().uri("/token")
-+                .body(Map.of("username", "admin", "password", "password"))
-+                .retrieve().toEntity(Map.class);
-+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-+        String jwt = (String) res.getBody().get("access_token");
-+        assertThat(jwt).isNotBlank();
++    void issuedTokenValidatesAgainstPublishedJwks() throws Exception {
++        String token = issueAdminToken();
++        RSAPublicKey publicKey = readPublishedPublicKey();
 +
-+        // A signed JWT is header.payload.signature; decode the payload to prove the
-+        // jjwt-gson serializer emitted the claims (the Jackson-2-free path under Boot 4).
-+        String[] parts = jwt.split("\\.");
-+        assertThat(parts).hasSize(3);
-+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-+        assertThat(payload).contains("\"sub\":\"admin\"").contains("\"role\":\"admin\"");
++        Jws<Claims> parsedToken = Jwts.parser()
++                .requireIssuer("assettrack-auth-svc")
++                .verifyWith(publicKey)
++                .build()
++                .parseSignedClaims(token);
++
++        Claims claims = parsedToken.getPayload();
++        assertEquals("admin", claims.getSubject());
++        assertEquals("admin", claims.get("role", String.class));
++        assertTrue(claims.getExpiration().after(claims.getIssuedAt()));
 +    }
 +
-+    @Test
-+    void badCredentials_returns401() {
-+        HttpStatusCode status = rest().post().uri("/token")
-+                .body(Map.of("username", "admin", "password", "wrong"))
-+                .exchange((req, res) -> res.getStatusCode());
-+        assertThat(status).isEqualTo(HttpStatus.UNAUTHORIZED);
++    private String issueAdminToken() throws Exception {
++        MvcResult result = mockMvc.perform(post("/token")
++                        .contentType(MediaType.APPLICATION_JSON)
++                        .content("""
++                                {
++                                  "username": "admin",
++                                  "password": "password"
++                                }
++                                """))
++                .andExpect(status().isOk())
++                .andReturn();
++
++        return objectMapper.readTree(result.getResponse().getContentAsString())
++                .get("access_token")
++                .asText();
 +    }
 +
-+    @Test
-+    void jwks_exposesKey() {
-+        ResponseEntity<Map> res = rest().get().uri("/.well-known/jwks").retrieve().toEntity(Map.class);
-+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-+        assertThat(res.getBody()).containsKey("keys");
++    private RSAPublicKey readPublishedPublicKey() throws Exception {
++        MvcResult result = mockMvc.perform(get("/.well-known/jwks"))
++                .andExpect(status().isOk())
++                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
++                .andReturn();
++
++        JsonNode key = objectMapper.readTree(result.getResponse().getContentAsString())
++                .get("keys")
++                .get(0);
++        Base64.Decoder decoder = Base64.getUrlDecoder();
++        BigInteger modulus = new BigInteger(1, decoder.decode(key.get("n").asText()));
++        BigInteger exponent = new BigInteger(1, decoder.decode(key.get("e").asText()));
++        return (RSAPublicKey) KeyFactory.getInstance("RSA")
++                .generatePublic(new RSAPublicKeySpec(modulus, exponent));
 +    }
 +}
+-- 
+2.51.1
+
