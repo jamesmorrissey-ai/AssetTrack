@@ -1,7 +1,9 @@
-# auth-svc (Java 21 / Spring Boot 3.5 — framework upgrade pending)
+# auth-svc (Java 21 / Spring Boot 4.1)
 
 > [!IMPORTANT]
-> This service now runs on Java 21, but its framework remains **a generation behind** the team's current cadence — Spring Boot 3.5, raw JDBC, plain-text passwords. It is CVE-clean but still due for the Spring Boot 4 and jjwt/serializer upgrade, giving course learners a realistic modernization/security target.
+> This service has moved to the team's current Java 21 and Spring Boot 4.1
+> stack. JJWT uses its Gson serializer so the token path does not retain
+> Jackson 2 alongside Spring Boot 4's Jackson 3 defaults.
 
 Issues RS256 JWTs and exposes a JWKs document so other services can validate tokens.
 
@@ -38,4 +40,4 @@ mvn test
 
 - **SQL injection** in `UserRepository.findByUsername` (string concatenation). Course exercise target.
 - **Plain-text passwords** in the seeded database.
-- **Spring Boot 3.5** — a generation behind the team's Spring Boot 4 target; the remaining currency-upgrade exercise includes the jjwt/serializer migration.
+- The signing key is generated at startup, so restarting the service invalidates existing tokens.

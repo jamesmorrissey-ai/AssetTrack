@@ -1,21 +1,21 @@
 package com.contoso.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
-import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 
@@ -61,15 +61,15 @@ class TokenControllerIntegrationTests extends AuthTestDatabase {
     @Test
     void issuedTokenValidatesAgainstPublishedJwks() throws Exception {
         String token = issueAdminToken();
-        PublicKey publicKey = readPublishedPublicKey();
+        RSAPublicKey publicKey = readPublishedPublicKey();
 
-        Jws<Claims> parsedToken = Jwts.parserBuilder()
+        Jws<Claims> parsedToken = Jwts.parser()
                 .requireIssuer("assettrack-auth-svc")
-                .setSigningKey(publicKey)
+                .verifyWith(publicKey)
                 .build()
-                .parseClaimsJws(token);
+                .parseSignedClaims(token);
 
-        Claims claims = parsedToken.getBody();
+        Claims claims = parsedToken.getPayload();
         assertEquals("admin", claims.getSubject());
         assertEquals("admin", claims.get("role", String.class));
         assertTrue(claims.getExpiration().after(claims.getIssuedAt()));
@@ -92,7 +92,7 @@ class TokenControllerIntegrationTests extends AuthTestDatabase {
                 .asText();
     }
 
-    private PublicKey readPublishedPublicKey() throws Exception {
+    private RSAPublicKey readPublishedPublicKey() throws Exception {
         MvcResult result = mockMvc.perform(get("/.well-known/jwks"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -104,6 +104,7 @@ class TokenControllerIntegrationTests extends AuthTestDatabase {
         Base64.Decoder decoder = Base64.getUrlDecoder();
         BigInteger modulus = new BigInteger(1, decoder.decode(key.get("n").asText()));
         BigInteger exponent = new BigInteger(1, decoder.decode(key.get("e").asText()));
-        return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, exponent));
+        return (RSAPublicKey) KeyFactory.getInstance("RSA")
+                .generatePublic(new RSAPublicKeySpec(modulus, exponent));
     }
 }
