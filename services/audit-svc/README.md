@@ -1,7 +1,8 @@
-# audit-svc (Java 17 / Spring Boot 3.5 — a generation behind)
+# audit-svc (Java 21 / Spring Boot 4.1)
 
 > [!IMPORTANT]
-> This service is **a generation behind** the team's current cadence — Spring Boot 3.5, Java 17, raw JDBC, no tests. It is CVE-clean but due for a currency upgrade, so it exists as a realistic modernization target for the course.
+> This service has moved to the team's current Java 21 and Spring Boot 4.1
+> stack while retaining its existing raw JDBC and SQLite design.
 
 Append-only audit log. Other services POST events; humans GET them.
 
@@ -31,9 +32,17 @@ Append-only audit log. Other services POST events; humans GET them.
 mvn spring-boot:run
 ```
 
+## Test
+
+```bash
+mvn test
+```
+
+The integration tests use an isolated temporary SQLite database and do not read
+or write `AUDIT_DB_PATH`.
+
 ## Known smells (course material)
 
 - **SQL injection** in `AuditRepository.search` (string concatenation across three `LIKE` clauses). Course exercise target.
-- **No tests** in this module.
-- **Spring Boot 3.5 / Java 17** — a generation behind the team's Spring Boot 4 / Java 21 target; the currency-upgrade exercise brings it current.
+- The current test suite is a behavior-preserving safety net for modernization; it does not fix intentional exercise targets.
 - Nothing currently POSTs to this service from `workforce-svc` — wiring that up is also an exercise.
