@@ -9,7 +9,7 @@ AssetTrack is an intentionally vulnerable teaching application with seven indepe
 - `workforce-svc` owns employees and assignments in SQLite and uses Java 21, Spring Boot, JPA, and Hibernate.
 - `reporting-svc` is a stateless FastAPI composition service. It reads live data from other services and proxies CSV imports to `assets-svc`.
 - `notifications-svc` receives assignment webhooks and persists a local SQLite event log.
-- `audit-svc` and `auth-svc` use Java 17, Spring Boot, raw JDBC, and SQLite. They intentionally lag the target Java/Spring versions.
+- `audit-svc` and `auth-svc` use Java 21, Spring Boot 4.1, raw JDBC, and SQLite.
 - Databases are service-owned. Cross-service IDs such as `Assignment.assetId` are scalar references with no database foreign keys or shared transactions.
 - Auth issues JWTs, but the web and domain services do not yet forward or validate them. Audit integration is also configured but not wired.
 
@@ -17,7 +17,7 @@ AssetTrack is an intentionally vulnerable teaching application with seven indepe
 
 ## Build, run, test, and lint
 
-Use the devcontainer toolchain: Node 22, .NET 10, Python 3.12, Maven, and JDK 21. The Java 17 services compile to Java 17 bytecode on JDK 21.
+Use the devcontainer toolchain: Node 22, .NET 10, Python 3.12, Maven, and JDK 21.
 
 ### Whole stack
 
@@ -73,7 +73,8 @@ mvn test
 mvn spring-boot:run
 ```
 
-These modules currently have no test sources. When adding JUnit tests, run one with `mvn -Dtest=ClassName#methodName test`.
+Both modules have characterization tests that use isolated temporary SQLite
+databases. Run one with `mvn -Dtest=ClassName#methodName test`.
 
 ### Python services
 

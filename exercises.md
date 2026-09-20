@@ -98,7 +98,9 @@ Verify nothing that imports the module breaks.
 
 **Goal:** Bring `services/audit-svc` current with the latest Spring Boot.
 
-`audit-svc` is secure but a generation behind: it runs on Spring Boot 3.5.16 and Java 17. Use Copilot to bring it current:
+This exercise is represented by the saved migration plan and completed
+modernization assets in `docs/modernization/`. To repeat it from the original
+baseline, use the generated course branch for Module 06.
 
 - Bump `pom.xml` to Spring Boot 4.1 (Spring Framework 7) and Java 21.
 - Work through the Boot 3 → 4 changes, including the move to Jackson 3, and adjust code and configuration as needed.
@@ -109,7 +111,9 @@ Verify nothing that imports the module breaks.
 
 **Goal:** Apply what you learned in exercise 9 to `services/auth-svc`, with a dependency-security twist.
 
-Same Spring Boot 3.5 → 4.1 and Java 17 → 21 jump as #9, but `auth-svc` adds a supply-chain angle. It depends on JJWT (`jjwt-api` / `jjwt-impl` / `jjwt-jackson` 0.11.x), and `jjwt-jackson` drags in a vulnerable transitive Jackson 2 — and the org rule is that no branch may ship a known-vulnerable package. Use Copilot to:
+This completed migration applies the same Spring Boot 3.5 → 4.1 and Java 17 →
+21 jump as #9, with the additional JJWT serializer migration. To repeat it from
+the original baseline, use the generated course branch for Module 06.
 
 - Bump `pom.xml` to Spring Boot 4.1 and Java 21.
 - Upgrade JJWT to 0.12.x and swap `jjwt-jackson` for `jjwt-gson`, so the token layer stops pulling in a vulnerable Jackson 2.

@@ -27,8 +27,8 @@
 - [ ] `workforce-svc` (Java 21 / Spring Boot 3)
 - [ ] `reporting-svc` (Python FastAPI)
 - [ ] `notifications-svc` (Python FastAPI)
-- [ ] `audit-svc` (legacy Java 11 / Spring Boot 2.7)
-- [ ] `auth-svc` (legacy Java 11 / Spring Boot 2.7)
+- [ ] `audit-svc` (Java 21 / Spring Boot 4.1)
+- [ ] `auth-svc` (Java 21 / Spring Boot 4.1)
 - [ ] devcontainer / tooling / docs
 
 ## Changes Made
@@ -45,7 +45,7 @@
 - [ ] .NET: `dotnet test` in `services/assets-svc` passes
 - [ ] Python: `pytest` in `services/reporting-svc` and/or `services/notifications-svc` passes
 - [ ] Modern Java: `mvn test` in `services/workforce-svc` passes
-- [ ] Currency-lagging Java: `mvn test` in `services/audit-svc` and/or `services/auth-svc` passes
+- [ ] Spring Boot 4 Java: `mvn test` in `services/audit-svc` and/or `services/auth-svc` passes
 - [ ] Manually verified the app runs (`npm run dev` or `docker compose up --build`) and the affected flow works at http://localhost:4321
 
 ## Checklist

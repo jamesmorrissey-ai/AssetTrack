@@ -150,7 +150,7 @@ Workforce makes a synchronous HTTP request and catches any resulting exception.
 
 **Purpose:** Store and search audit events.
 
-**Stack:** Java 17, Spring Boot 3.5, Spring JDBC, and SQLite.
+**Stack:** Java 21, Spring Boot 4.1, Spring JDBC, and SQLite.
 
 - `AuditController.java` exposes event creation and lookup.
 - `AuditRepository.java` performs JDBC operations.
@@ -165,7 +165,8 @@ into SQL as a course security exercise.
 **Purpose:** User lookup, credential checking, RS256 JWT issuance, and JWKS
 publication.
 
-**Stack:** Java 21, Spring Boot 3.5, Spring JDBC, JJWT, and SQLite.
+**Stack:** Java 21, Spring Boot 4.1, Spring JDBC, JJWT with Gson serialization,
+and SQLite.
 
 - `TokenController.java` exposes token, JWKS, health, and user endpoints.
 - `UserRepository.java` performs user lookup.

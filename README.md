@@ -5,7 +5,7 @@
 >
 > This repository contains intentionally insecure code and an intentionally vulnerable application for educational and security-testing purposes only. Do not deploy it to production, expose it to the public internet, or run it on systems containing sensitive data. Use it only in an isolated, authorized environment, such as a sandbox or disposable virtual machine. You are responsible for preventing unauthorized access, misuse, or unintended impact on your systems and networks.
 
-AssetTrack is Contoso Industries' internal application for tracking hardware assets (laptops, monitors, phones, badges, docking stations) and the employees they're assigned to. It is intentionally built as a **polyglot microservices** application so that course learners can practice agentic, Copilot-driven development across a realistic multi-language stack — including a couple of older Java services that still need modernization.
+AssetTrack is Contoso Industries' internal application for tracking hardware assets (laptops, monitors, phones, badges, docking stations) and the employees they're assigned to. It is intentionally built as a **polyglot microservices** application so that course learners can practice agentic, Copilot-driven development across a realistic multi-language stack.
 
 ## Architecture at a glance
 
@@ -24,10 +24,8 @@ flowchart LR
       notifications[notifications-svc<br/>Python FastAPI]
     end
 
-    subgraph behind[Services a generation behind - due for a currency upgrade]
-      audit[audit-svc<br/>Java 17 / Spring Boot 3.5]
-      auth[auth-svc<br/>Java 21 / Spring Boot 3.5]
-    end
+    audit[audit-svc<br/>Java 21 / Spring Boot 4.1]
+    auth[auth-svc<br/>Java 21 / Spring Boot 4.1]
 
     web --> assets
     web --> workforce
@@ -52,8 +50,8 @@ integrity.
 | `workforce-svc`      | Java 21 / Spring Boot 3.5              | 5002  | Employees and assignments; owns SQLite workforce data |
 | `reporting-svc`      | Python 3.12 / FastAPI                  | 5003  | Live reports and CSV import proxy; no primary database |
 | `notifications-svc`  | Python 3.12 / FastAPI                  | 5004  | Assignment webhook receiver and delivery stubs; owns a SQLite event log |
-| `audit-svc`          | Java 17 / Spring Boot 3.5 *(currency-lagging)* | 5005 | Audit event log in SQLite |
-| `auth-svc`           | Java 21 / Spring Boot 3.5 *(framework currency-lagging)* | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
+| `audit-svc`          | Java 21 / Spring Boot 4.1              | 5005 | Audit event log in SQLite |
+| `auth-svc`           | Java 21 / Spring Boot 4.1              | 5006 | User lookup, JWT issuance, and JWKS publication in SQLite |
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for service boundaries, request flows,
 data initialization, integration behavior, and currently unenforced rules.
@@ -62,7 +60,7 @@ data initialization, integration behavior, and currently unenforced rules.
 
 1. Open the repository in GitHub Codespaces, or in VS Code with the Dev Containers extension.
 2. Wait for the devcontainer to finish provisioning. It installs:
-   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK for all three JVM services; `audit-svc` still targets Java 17 bytecode while `auth-svc` and `workforce-svc` target Java 21).
+   - Node 22, .NET 10, Python 3.12, Maven, and **Java 21** (the JDK and bytecode target for all three JVM services).
    - `concurrently` and editable Python installs for the FastAPI services (via `postCreateCommand`).
 3. From the workspace root:
 
